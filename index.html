@@ -1,0 +1,1294 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Threads 自動投稿</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #f0f0f3;
+  --text: #1c1c1e;
+  --muted: #6b6b72;
+  --line: #e2e2e6;
+  --accent: #2f5bea;
+  --accent-text: #ffffff;
+  --accent-soft: #e8eeff;
+  --danger: #c62828;
+  --danger-soft: #fdecec;
+  --warn: #8a5a00;
+  --warn-soft: #fff4d6;
+  --ok: #1b7f3b;
+  --ok-soft: #e5f5ea;
+  --radius: 14px;
+  --tabbar-h: 64px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111113;
+    --surface: #1c1c1f;
+    --surface-2: #26262a;
+    --text: #f2f2f4;
+    --muted: #a0a0a8;
+    --line: #34343a;
+    --accent: #7c9bff;
+    --accent-text: #0d1330;
+    --accent-soft: #232c4d;
+    --danger: #ff7b7b;
+    --danger-soft: #3a1d1f;
+    --warn: #f3c45a;
+    --warn-soft: #3a2f14;
+    --ok: #6fd391;
+    --ok-soft: #173322;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom));
+}
+header.top {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg);
+  padding: 12px 16px 8px;
+  max-width: 640px; margin: 0 auto;
+  display: flex; align-items: center; gap: 8px;
+}
+header.top h1 { font-size: 18px; margin: 0; flex: 1; letter-spacing: .02em; }
+.updated { font-size: 12px; color: var(--muted); }
+.icon-btn {
+  min-width: 44px; min-height: 44px; border-radius: 22px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  font-size: 18px; cursor: pointer;
+}
+.icon-btn.spin span { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.banner {
+  border-radius: var(--radius); padding: 12px 14px; margin: 8px 0 12px;
+  font-size: 14px; line-height: 1.5;
+}
+.banner p { margin: 0; }
+.banner p + p { margin-top: 6px; }
+.banner.warn { background: var(--warn-soft); color: var(--warn); }
+.banner.danger { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+
+h2 { font-size: 15px; margin: 22px 0 8px; color: var(--muted); font-weight: 600; letter-spacing: .03em; }
+h2 .count-pill { margin-left: 6px; }
+.section {
+  background: var(--surface); border-radius: var(--radius); padding: 16px;
+  margin-bottom: 12px; border: 1px solid var(--line);
+}
+.section h3 { margin: 0 0 10px; font-size: 16px; }
+.muted { color: var(--muted); font-size: 14px; }
+.empty { color: var(--muted); font-size: 14px; padding: 14px; text-align: center; background: var(--surface); border-radius: var(--radius); border: 1px dashed var(--line); }
+
+.post-card, .history-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 10px; overflow-wrap: anywhere;
+}
+.post-card.is-busy { opacity: .65; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.when { font-weight: 700; font-size: 15px; margin-right: auto; }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.badge.pending { background: var(--warn-soft); color: var(--warn); }
+.badge.approved, .badge.ready, .badge.posted { background: var(--ok-soft); color: var(--ok); }
+.badge.busy { background: var(--accent-soft); color: var(--accent); }
+.badge.bad { background: var(--danger-soft); color: var(--danger); }
+.count-pill { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--surface-2); color: var(--muted); }
+.part { white-space: pre-wrap; font-size: 15px; }
+.part + .part { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
+.part-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.meta { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.error-text { font-size: 13px; color: var(--danger); margin-top: 6px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.actions button { flex: 1 1 0; min-width: 88px; }
+button.btn, .btn {
+  min-height: 46px; padding: 10px 14px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text);
+  font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+}
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn.danger { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.btn.ghost { background: transparent; }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:focus-visible, .icon-btn:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.edit-area { display: grid; gap: 10px; }
+.edit-row { display: grid; gap: 4px; }
+.edit-row-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); }
+.edit-row-head .over { color: var(--danger); font-weight: 700; }
+.link-btn { background: none; border: none; color: var(--danger); font-size: 13px; padding: 8px 4px; cursor: pointer; font-family: inherit; }
+
+label.field { display: block; margin-bottom: 14px; }
+label.field > span { display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+label.field small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; font-weight: 400; }
+input[type=text], input[type=password], input[type=number], textarea, select {
+  width: 100%; font-size: 16px; font-family: inherit; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 12px; min-height: 46px;
+}
+textarea { resize: vertical; line-height: 1.6; }
+.times { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.times label { font-size: 12px; color: var(--muted); }
+.form-errors { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
+.form-errors ul { margin: 0; padding-left: 18px; }
+
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 12px; }
+.segmented button { min-height: 44px; border: none; border-radius: 9px; background: transparent; color: var(--muted); font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.segmented button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.row-gap { display: grid; gap: 10px; }
+
+.neta-item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 6px; font-size: 15px; overflow-wrap: anywhere; }
+.neta-item.is-busy { border-style: dashed; color: var(--muted); }
+.neta-item .date { font-size: 12px; color: var(--muted); display: block; }
+
+.run { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.run:last-child { border-bottom: none; }
+.run .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run .time { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+.status-line { font-size: 14px; margin-top: 8px; }
+.status-line.bad { color: var(--danger); }
+.status-line.good { color: var(--ok); }
+.token-status { font-size: 15px; white-space: pre-line; }
+
+nav.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+nav.tabbar .inner { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+nav.tabbar button {
+  height: var(--tabbar-h); border: none; background: none; color: var(--muted);
+  font-size: 12px; font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer;
+}
+nav.tabbar button .ico { font-size: 20px; line-height: 1; }
+nav.tabbar button[aria-selected="true"] { color: var(--accent); font-weight: 700; }
+
+#toast {
+  position: fixed; left: 16px; right: 16px; bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
+  max-width: 560px; margin: 0 auto; z-index: 20;
+  background: var(--text); color: var(--bg); padding: 12px 16px; border-radius: 12px; font-size: 14px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.25);
+}
+#toast.error { background: var(--danger); color: #fff; }
+
+.modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 30; display: flex; align-items: flex-end; justify-content: center; padding: 16px; }
+.modal { background: var(--surface); border-radius: 18px; padding: 20px; width: 100%; max-width: 480px; margin-bottom: env(safe-area-inset-bottom); }
+.modal p { margin: 0 0 16px; white-space: pre-line; }
+.modal .actions { margin-top: 0; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Threads 自動投稿</h1>
+  <span class="updated" id="updated-at"></span>
+  <button class="icon-btn" id="reload-btn" type="button" aria-label="読み直す"><span>↻</span></button>
+</header>
+
+<div class="wrap">
+  <div id="token-banner" class="banner" role="status" hidden></div>
+  <div id="paused-banner" class="banner danger" role="status" hidden>
+    <p>緊急停止中です。下書きづくりも投稿もしません（「設定」→「再開」で戻せます）。</p>
+  </div>
+  <div id="not-connected" class="banner warn" hidden>
+    <p>まだ接続していません。「設定」タブのいちばん下の「接続」で、GitHub のユーザー名・リポジトリ名・トークンを入れてください。</p>
+  </div>
+
+  <!-- ホーム -->
+  <section id="view-home">
+    <h2>承認待ち <span class="count-pill" id="pending-count">0</span></h2>
+    <div id="pending-list"></div>
+    <h2>予約済み <span class="count-pill" id="scheduled-count">0</span></h2>
+    <div id="scheduled-list"></div>
+    <div id="trouble-wrap" hidden>
+      <h2>最近うまくいかなかったもの</h2>
+      <div id="trouble-list"></div>
+    </div>
+  </section>
+
+  <!-- ネタ帳 -->
+  <section id="view-neta" hidden>
+    <h2>ネタを足す</h2>
+    <div class="section">
+      <label class="field">
+        <span>メモ</span>
+        <textarea id="neta-input" rows="4" placeholder="例：朝の散歩で気づいたこと&#10;（1行に1つのネタ。何行でも書けます）"></textarea>
+      </label>
+      <button class="btn primary block" id="neta-submit" type="button">ネタ帳に追加</button>
+    </div>
+    <h2>未使用 <span class="count-pill" id="neta-pending-count">0</span></h2>
+    <div id="neta-pending-list"></div>
+    <h2>使用済み</h2>
+    <div id="neta-used-list"></div>
+  </section>
+
+  <!-- 履歴 -->
+  <section id="view-history" hidden>
+    <h2>投稿履歴</h2>
+    <div id="history-list"></div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="view-settings" hidden>
+    <h2>運用</h2>
+    <div class="section row-gap">
+      <div>
+        <h3>モード</h3>
+        <div class="segmented" role="group" aria-label="モード">
+          <button id="mode-approval" type="button" aria-pressed="true">承認してから投稿</button>
+          <button id="mode-auto" type="button" aria-pressed="false">完全自動</button>
+        </div>
+      </div>
+      <button class="btn danger block" id="pause-btn" type="button">緊急停止</button>
+      <button class="btn block" id="plan-now" type="button">今すぐ下書きを作る</button>
+    </div>
+
+    <h2>Threadsのトークン</h2>
+    <div class="section row-gap">
+      <div id="token-status" class="token-status">—</div>
+      <button class="btn primary block" id="token-refresh" type="button">トークンを更新</button>
+      <div id="token-refresh-note" class="muted"></div>
+      <button class="btn block" id="token-setup" type="button">初回セットアップ</button>
+    </div>
+
+    <h2>アカウントと投稿</h2>
+    <div class="section">
+      <div id="settings-errors" class="form-errors" hidden></div>
+      <label class="field"><span>Threadsのアカウント名（@なし）</span>
+        <input type="text" id="set-handle" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：my_account">
+      </label>
+      <label class="field"><span>あなたの立場</span>
+        <input type="text" id="set-persona" placeholder="例：子育て中の会社員">
+      </label>
+      <label class="field"><span>届けたい相手</span>
+        <input type="text" id="set-audience" placeholder="例：朝が苦手な人">
+      </label>
+      <label class="field"><span>発信テーマ</span>
+        <textarea id="set-themes" rows="3" placeholder="1行に1つ"></textarea>
+        <small>1行に1つ書いてください。</small>
+      </label>
+      <label class="field"><span>1日に作る投稿の数</span>
+        <select id="set-posts-per-day"></select>
+      </label>
+      <div class="field">
+        <span style="display:block;font-size:14px;font-weight:600;margin-bottom:4px">投稿の時刻（日本時間）</span>
+        <div class="times" id="times-box"></div>
+        <small class="muted">6:30〜23:30 の間で、30分以上あけてください。</small>
+      </div>
+      <label class="field"><span>1日に投稿する数の上限（安全装置）</span>
+        <input type="number" id="set-max-per-day" inputmode="numeric" min="1" max="50">
+      </label>
+      <button class="btn primary block" id="settings-save" type="button">設定を保存</button>
+    </div>
+
+    <h2>最近の自動実行</h2>
+    <div class="section"><div id="runs-list"><div class="muted">—</div></div></div>
+
+    <h2>接続（この端末にだけ保存）</h2>
+    <div class="section">
+      <label class="field"><span>GitHub のユーザー名</span>
+        <input type="text" id="conn-owner" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="field"><span>リポジトリ名</span>
+        <input type="text" id="conn-repo" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="field"><span>GitHub のトークン</span>
+        <input type="password" id="conn-token" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <small>Contents と Actions を Read and write にしたトークン。この端末のブラウザにだけ保存します。</small>
+      </label>
+      <div class="actions">
+        <button class="btn primary" id="conn-save" type="button">接続</button>
+        <button class="btn ghost" id="conn-clear" type="button">接続を解除</button>
+      </div>
+      <div id="conn-status" class="status-line"></div>
+    </div>
+  </section>
+</div>
+
+<nav class="tabbar" aria-label="タブ">
+  <div class="inner" role="tablist">
+    <button id="tab-btn-home" type="button" role="tab" aria-selected="true"><span class="ico">⌂</span>ホーム</button>
+    <button id="tab-btn-neta" type="button" role="tab" aria-selected="false"><span class="ico">✎</span>ネタ帳</button>
+    <button id="tab-btn-history" type="button" role="tab" aria-selected="false"><span class="ico">☰</span>履歴</button>
+    <button id="tab-btn-settings" type="button" role="tab" aria-selected="false"><span class="ico">⚙</span>設定</button>
+  </div>
+</nav>
+
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<div class="modal-back" id="confirm-back" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-text">
+    <p id="confirm-text"></p>
+    <div class="actions">
+      <button class="btn" id="confirm-no" type="button">やめる</button>
+      <button class="btn primary" id="confirm-yes" type="button">はい</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ===== 決まりごと（CLAUDE.md） =====
+const API = "https://api.github.com";
+const LS_CONN = "tpost-panel-conn";
+const LS_TAB = "tpost-panel-tab";
+const DAY = 86400000;
+const DEFAULT_TIMES = ["07:30", "09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00"];
+const DEFAULTS = {
+  handle: "", persona: "", audience: "", themes: [], mode: "approval", paused: false,
+  posts_per_day: 1, post_times: ["07:30"], max_posts_per_day: 10, max_length: 500,
+  thread_max_parts: 5, similarity_threshold: 0.6, ai_model: "claude-sonnet-5-5"
+};
+const ACTIVE = ["pending", "approved", "ready"];
+const STATUS_NAMES = {
+  pending: "承認待ち", approved: "承認ずみ", ready: "予約（完全自動）", posted: "投稿ずみ",
+  partial: "途中まで", failed: "失敗", rejected: "却下", cancelled: "取り消し", expired: "期限切れ", skipped: "似ていたので見送り"
+};
+const TABS = ["home", "neta", "history", "settings"];
+
+const state = {
+  conn: null, repoInfo: null, settings: null, queue: [], history: [],
+  neta: { unused: [], used: [] }, token: null, tokenLoaded: false, runs: [],
+  loading: false, loadedAt: null, pendingIds: new Set(), pendingNeta: [],
+  editing: new Map(), formDirty: false
+};
+
+const $ = (id) => document.getElementById(id);
+
+function h(tag, props, ...children) {
+  const e = document.createElement(tag);
+  if (props) {
+    for (const [k, v] of Object.entries(props)) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k === "class") e.className = v;
+      else if (k === "text") e.textContent = v;
+      else if (k === "disabled" || k === "value" || k === "rows") e[k] = v;
+      else e.setAttribute(k, v === true ? "" : String(v));
+    }
+  }
+  for (const c of children.flat()) {
+    if (c === null || c === undefined || c === false) continue;
+    e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  }
+  return e;
+}
+
+// ===== 文字数・URL・本文の確認（設計書「7.」「11.」） =====
+const EMOJI_RANGES = [[0x200D, 0x200D], [0x20E3, 0x20E3], [0x2190, 0x21FF], [0x2300, 0x23FF], [0x2460, 0x24FF],
+  [0x25A0, 0x25FF], [0x2600, 0x27BF], [0x2900, 0x297F], [0x2B00, 0x2BFF], [0x3030, 0x3030], [0x303D, 0x303D],
+  [0x3297, 0x3299], [0xFE00, 0xFE0F], [0x10000, 0x10FFFF]];
+const URL_RE = /https?:\/\/[^\s<>"'）」】、。]+/;
+
+function isEmoji(cp) { return EMOJI_RANGES.some(([lo, hi]) => cp >= lo && cp <= hi); }
+function utf8Len(cp) { return cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4; }
+function countChars(text) {
+  let n = 0;
+  for (const ch of String(text).normalize("NFC")) {
+    const cp = ch.codePointAt(0);
+    n += isEmoji(cp) ? utf8Len(cp) : 1;
+  }
+  return n;
+}
+function hasUrl(text) { return URL_RE.test(text); }
+function splitParts(text) {
+  const parts = [];
+  let cur = [];
+  for (const line of String(text).split(/\r?\n/)) {
+    if (line.trim() === "---") { parts.push(cur.join("\n")); cur = []; }
+    else cur.push(line);
+  }
+  parts.push(cur.join("\n"));
+  return parts.map((p) => p.trim()).filter((p) => p);
+}
+function checkParts(parts, s) {
+  if (!parts.length) return ["本文が空です"];
+  const errors = [];
+  if (parts.length > s.thread_max_parts) errors.push(`スレッドの数が${s.thread_max_parts}を超えています（${parts.length}）`);
+  parts.forEach((p, i) => {
+    const n = countChars(p);
+    if (n > s.max_length) errors.push(`${i + 1}つ目が長すぎます（${n}／${s.max_length}）`);
+    if (hasUrl(p)) errors.push(`${i + 1}つ目にURLが入っています（URLは投稿できません）`);
+  });
+  return errors;
+}
+
+// ===== 設定の読み込み（設計書「3.」） =====
+function alignTimes(times, count) {
+  const result = times.filter((t) => typeof t === "string").slice(0, count);
+  for (const t of DEFAULT_TIMES) {
+    if (result.length >= count) break;
+    if (!result.includes(t)) result.push(t);
+  }
+  return result;
+}
+function normSettings(raw) {
+  const s = Object.assign({}, DEFAULTS, raw && typeof raw === "object" ? raw : {});
+  s.handle = String(s.handle || "").trim().replace(/^@+/, "");
+  s.themes = Array.isArray(s.themes) ? s.themes.map((t) => String(t).trim()).filter((t) => t) : [];
+  let n = parseInt(s.posts_per_day, 10);
+  if (isNaN(n)) n = 1;
+  s.posts_per_day = Math.min(10, Math.max(1, n));
+  s.post_times = alignTimes(Array.isArray(s.post_times) ? s.post_times : [], s.posts_per_day);
+  for (const k of ["max_posts_per_day", "max_length", "thread_max_parts"]) {
+    const v = parseInt(s[k], 10);
+    s[k] = isNaN(v) ? DEFAULTS[k] : v;
+  }
+  return s;
+}
+
+// ===== ネタ帳（設計書「5.」） =====
+function parseNeta(text) {
+  const result = { unused: [], used: [] };
+  let section = null;
+  for (const line of String(text).split(/\r?\n/)) {
+    if (line.startsWith("## ")) {
+      const name = line.slice(3).trim();
+      section = name === "未使用" ? "unused" : name === "使用済み" ? "used" : null;
+    } else if (section && line.startsWith("- ") && line.slice(2).trim()) {
+      result[section].push(line.slice(2).trim());
+    }
+  }
+  return result;
+}
+
+// ===== 日時（日本時間） =====
+const JST_FMT = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric",
+  hour: "2-digit", minute: "2-digit", weekday: "short", hourCycle: "h23"
+});
+function jstParts(d) { const p = {}; for (const x of JST_FMT.formatToParts(d)) p[x.type] = x.value; return p; }
+function toDate(s) { if (!s) return null; const d = new Date(s); return isNaN(d.getTime()) ? null : d; }
+function fmtDateTime(d) { if (!d) return "—"; const p = jstParts(d); return `${p.month}/${p.day}（${p.weekday}） ${p.hour}:${p.minute}`; }
+function fmtYMD(d) { const p = jstParts(d); return `${p.year}/${p.month}/${p.day}`; }
+function fmtFull(d) { const p = jstParts(d); return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}`; }
+function daysLeft(when, now) { return Math.floor((when.getTime() - now.getTime()) / DAY); }
+
+// ===== この端末に保存する接続情報（localStorage だけ） =====
+function loadConn() {
+  try {
+    const c = JSON.parse(localStorage.getItem(LS_CONN) || "null");
+    if (c && c.owner && c.repo && c.token) return c;
+  } catch (e) { /* 読めなくても動く */ }
+  return null;
+}
+function saveConn(c) { try { localStorage.setItem(LS_CONN, JSON.stringify(c)); } catch (e) { /* 保存できなくても動く */ } }
+function clearConn() { try { localStorage.removeItem(LS_CONN); } catch (e) { /* 何もしない */ } }
+
+// ===== GitHub API =====
+class ApiError extends Error {
+  constructor(status, message) { super(message); this.status = status; }
+}
+function errorMessage(status) {
+  switch (status) {
+    case 0: return "GitHub につながりません（通信を確かめてください）";
+    case 401: return "アクセストークンが無効か、期限切れです";
+    case 403: return "権限が足りません（トークンの Contents と Actions を Read and write に）";
+    case 404: return "見つかりません（404）。ユーザー名・リポジトリ名と、トークンの対象リポジトリを確かめてください";
+    case 409: return "ほかの更新と重なりました（409）。もう一度試してください";
+    case 422: return "GitHub に断られました（422）。ワークフローのファイルを確かめてください";
+    default: return `GitHub API エラー（${status}）`;
+  }
+}
+function apiUrl(path) {
+  let url = API + path;
+  while (url.endsWith("/")) url = url.slice(0, -1);
+  return url;
+}
+async function gh(method, path, body, conn) {
+  conn = conn || state.conn;
+  const headers = {
+    "Authorization": `Bearer ${conn.token}`,
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  let res;
+  try {
+    res = await fetch(apiUrl(path), { method, headers, cache: "no-store", body: body === undefined ? undefined : JSON.stringify(body) });
+  } catch (e) {
+    throw new ApiError(0, errorMessage(0));
+  }
+  if (!res.ok) throw new ApiError(res.status, errorMessage(res.status));
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+function repoPath(conn) {
+  conn = conn || state.conn;
+  return `/repos/${encodeURIComponent(conn.owner)}/${encodeURIComponent(conn.repo)}`;
+}
+function contentsPath(path, conn) {
+  return `${repoPath(conn)}/contents/${path.split("/").map(encodeURIComponent).join("/")}`;
+}
+function b64decode(b64) {
+  const bin = atob(String(b64).replace(/\s/g, ""));
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder("utf-8").decode(bytes);
+}
+function b64encode(text) {
+  const bytes = new TextEncoder().encode(text);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+async function readFile(path, conn) {
+  const d = await gh("GET", contentsPath(path, conn), undefined, conn);
+  return { text: b64decode(d.content || ""), sha: d.sha };
+}
+async function readJson(path, fallback) {
+  try {
+    const f = await readFile(path);
+    return f.text.trim() ? JSON.parse(f.text) : fallback;
+  } catch (e) {
+    if (e.status === 404) return fallback;
+    if (e instanceof SyntaxError) return fallback;
+    throw e;
+  }
+}
+async function defaultBranch() {
+  if (!state.repoInfo) state.repoInfo = await gh("GET", repoPath());
+  return state.repoInfo.default_branch;
+}
+
+// ワークフローを動かす
+let reloadTimers = [];
+function scheduleReload() {
+  reloadTimers.forEach(clearTimeout);
+  reloadTimers = [20000, 60000].map((ms) => setTimeout(() => loadAll(), ms));
+}
+async function dispatch(workflow, inputs) {
+  const ref = await defaultBranch();
+  const body = inputs ? { ref, inputs } : { ref };
+  await gh("POST", `${repoPath()}/actions/workflows/${workflow}/dispatches`, body);
+  scheduleReload();
+}
+function runControl(action, id, text) {
+  // control.yml に送る入力は action・id・text だけ
+  return dispatch("control.yml", { action, id: id || "", text: text || "" });
+}
+
+// settings.json を書きかえる（409 のときは読み直して1回だけ当て直す）
+async function updateSettings(mutate) {
+  const attempt = async () => {
+    const f = await readFile("settings.json");
+    let obj;
+    try { obj = JSON.parse(f.text); } catch (e) { obj = {}; }
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) obj = {};
+    mutate(obj);
+    const branch = await defaultBranch();
+    await gh("PUT", contentsPath("settings.json"), {
+      message: "操作画面から設定を変更",
+      content: b64encode(JSON.stringify(obj, null, 2) + "\n"),
+      sha: f.sha,
+      branch
+    });
+    return obj;
+  };
+  let obj;
+  try {
+    obj = await attempt();
+  } catch (e) {
+    if (e.status !== 409) throw e;
+    obj = await attempt();
+  }
+  state.settings = normSettings(obj);
+  renderAll();
+}
+
+// ===== 読み込み =====
+async function loadAll() {
+  if (!state.conn || state.loading) return;
+  state.loading = true;
+  $("reload-btn").classList.add("spin");
+  try {
+    await defaultBranch();
+    const [settingsFile, queue, history, netaText, token, runs] = await Promise.all([
+      readFile("settings.json"),
+      readJson("data/queue.json", []),
+      readJson("data/history.json", []),
+      readFile("neta.md").then((f) => f.text).catch((e) => { if (e.status === 404) return ""; throw e; }),
+      readJson("data/token.json", null),
+      gh("GET", `${repoPath()}/actions/runs?per_page=8`).catch(() => null)
+    ]);
+    let raw = {};
+    try { raw = JSON.parse(settingsFile.text); } catch (e) { raw = {}; }
+    state.settings = normSettings(raw);
+    state.queue = Array.isArray(queue) ? queue : [];
+    state.history = Array.isArray(history) ? history : [];
+    state.neta = parseNeta(netaText);
+    state.token = token && typeof token === "object" ? token : null;
+    state.tokenLoaded = true;
+    state.runs = runs && Array.isArray(runs.workflow_runs) ? runs.workflow_runs : [];
+    state.loadedAt = new Date();
+    // 最新の内容を表示したら「反映待ち」は元に戻す
+    state.pendingIds.clear();
+    state.pendingNeta = [];
+    for (const id of [...state.editing.keys()]) {
+      const item = state.queue.find((q) => q.id === id);
+      if (!item || !ACTIVE.includes(item.status)) state.editing.delete(id);
+    }
+    setConnStatus("", "");
+    renderAll();
+  } catch (e) {
+    setConnStatus(e.message, "bad");
+    toast(e.message, true);
+  } finally {
+    state.loading = false;
+    $("reload-btn").classList.remove("spin");
+  }
+}
+
+// ===== 表示 =====
+let toastTimer = null;
+function toast(message, isError) {
+  const t = $("toast");
+  t.textContent = message;
+  t.className = isError ? "error" : "";
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, isError ? 6000 : 3500);
+}
+
+let confirmResolve = null;
+function ask(message) {
+  $("confirm-text").textContent = message;
+  $("confirm-back").hidden = false;
+  $("confirm-yes").focus();
+  return new Promise((resolve) => { confirmResolve = resolve; });
+}
+function closeAsk(answer) {
+  $("confirm-back").hidden = true;
+  if (confirmResolve) { const r = confirmResolve; confirmResolve = null; r(answer); }
+}
+
+function switchTab(name) {
+  if (!TABS.includes(name)) name = "home";
+  for (const t of TABS) {
+    $(`view-${t}`).hidden = t !== name;
+    $(`tab-btn-${t}`).setAttribute("aria-selected", String(t === name));
+  }
+  try { localStorage.setItem(LS_TAB, name); } catch (e) { /* 何もしない */ }
+  window.scrollTo(0, 0);
+}
+
+function setConnStatus(message, kind) {
+  const el = $("conn-status");
+  el.textContent = message;
+  el.className = "status-line" + (kind ? " " + kind : "");
+}
+
+function renderAll() {
+  $("not-connected").hidden = !!state.conn;
+  $("updated-at").textContent = state.loadedAt ? `${jstParts(state.loadedAt).hour}:${jstParts(state.loadedAt).minute} 更新` : "";
+  $("paused-banner").hidden = !(state.settings && state.settings.paused);
+  renderTokenBanner();
+  renderHome();
+  renderNeta();
+  renderHistory();
+  renderOps();
+  renderToken();
+  renderRuns();
+  fillSettingsForm();
+}
+
+function sortByWhen(items, key, desc) {
+  return [...items].sort((a, b) => {
+    const da = toDate(a[key]), db = toDate(b[key]);
+    const va = da ? da.getTime() : Infinity, vb = db ? db.getTime() : Infinity;
+    return desc ? vb - va : va - vb;
+  });
+}
+
+function partsView(parts) {
+  const list = Array.isArray(parts) ? parts : [];
+  return list.map((p, i) => h("div", { class: "part" },
+    list.length > 1 ? h("span", { class: "part-label", text: `${i + 1}／${list.length}` }) : null,
+    p,
+    h("span", { class: "part-label", text: `${countChars(p)}文字` })));
+}
+
+function postCard(item, kind) {
+  const id = item.id;
+  const busy = state.pendingIds.has(id);
+  const editing = state.editing.get(id);
+  const sourceText = item.source === "neta" ? "ネタ帳から" : item.theme ? `テーマ：${item.theme}` : "テーマから";
+  const card = h("article", { class: "post-card" + (busy ? " is-busy" : ""), "data-id": id },
+    h("div", { class: "card-head" },
+      h("span", { class: "when", text: fmtDateTime(toDate(item.scheduled_at)) }),
+      h("span", { class: `badge ${item.status}`, text: STATUS_NAMES[item.status] || item.status }),
+      h("span", { class: "badge", text: sourceText }),
+      busy ? h("span", { class: "badge busy", text: "反映待ち" }) : null));
+
+  if (editing) {
+    const area = h("div", { class: "edit-area" });
+    editing.forEach((text, i) => {
+      const ta = h("textarea", { class: "edit-part", "data-index": i, rows: 6, "aria-label": `${i + 1}つ目の本文` });
+      ta.value = text;
+      area.append(h("div", { class: "edit-row" },
+        h("div", { class: "edit-row-head" },
+          h("span", { text: editing.length > 1 ? `${i + 1}つ目` : "本文" }),
+          h("span", { class: "char-count", "data-index": i }),
+          editing.length > 1 ? h("button", { class: "link-btn", type: "button", "data-action": "remove-part", "data-index": i, text: "この投稿を消す" }) : null),
+        ta));
+    });
+    area.append(h("div", { class: "error-text edit-errors" }));
+    card.append(area, h("div", { class: "actions" },
+      h("button", { class: "btn", type: "button", "data-action": "add-part", text: "＋ 続きを足す（スレッド）" }),
+      h("button", { class: "btn ghost", type: "button", "data-action": "cancel-edit", text: "やめる" }),
+      h("button", { class: "btn primary", type: "button", "data-action": "save-edit", text: "修正して承認" })));
+    updateEditValidity(card);
+    return card;
+  }
+
+  card.append(...partsView(item.parts));
+  if (item.neta) card.append(h("div", { class: "meta", text: `ネタ：${item.neta}` }));
+  const buttons = kind === "pending"
+    ? [h("button", { class: "btn primary", type: "button", "data-action": "approve", disabled: busy, text: "承認" }),
+       h("button", { class: "btn", type: "button", "data-action": "edit", disabled: busy, text: "修正" }),
+       h("button", { class: "btn danger", type: "button", "data-action": "reject", disabled: busy, text: "却下" })]
+    : [h("button", { class: "btn", type: "button", "data-action": "edit", disabled: busy, text: "修正" }),
+       h("button", { class: "btn danger", type: "button", "data-action": "cancel", disabled: busy, text: "取り消し" })];
+  card.append(h("div", { class: "actions" }, buttons));
+  return card;
+}
+
+function updateEditValidity(card) {
+  const id = card.getAttribute("data-id");
+  const editing = state.editing.get(id);
+  if (!editing || !state.settings) return;
+  const s = state.settings;
+  card.querySelectorAll(".char-count").forEach((el) => {
+    const n = countChars((editing[Number(el.getAttribute("data-index"))] || "").trim());
+    el.textContent = `${n}／${s.max_length}文字`;
+    el.className = "char-count" + (n > s.max_length ? " over" : "");
+  });
+  const errors = checkParts(splitParts(editing.join("\n---\n")), s);
+  const box = card.querySelector(".edit-errors");
+  if (box) box.textContent = errors.join("／");
+  const save = card.querySelector('[data-action="save-edit"]');
+  if (save) save.disabled = errors.length > 0;
+}
+
+function renderHome() {
+  const pendingList = $("pending-list"), scheduledList = $("scheduled-list");
+  pendingList.replaceChildren();
+  scheduledList.replaceChildren();
+  if (!state.conn || !state.settings) {
+    pendingList.append(h("div", { class: "empty", text: "接続すると、ここに下書きが出ます" }));
+    $("pending-count").textContent = "0";
+    $("scheduled-count").textContent = "0";
+    $("trouble-wrap").hidden = true;
+    return;
+  }
+  const pending = sortByWhen(state.queue.filter((q) => q.status === "pending"), "scheduled_at");
+  const scheduled = sortByWhen(state.queue.filter((q) => q.status === "approved" || q.status === "ready"), "scheduled_at");
+  $("pending-count").textContent = String(pending.length);
+  $("scheduled-count").textContent = String(scheduled.length);
+  if (pending.length) pending.forEach((q) => pendingList.append(postCard(q, "pending")));
+  else pendingList.append(h("div", { class: "empty", text: "承認待ちの下書きはありません" }));
+  if (scheduled.length) scheduled.forEach((q) => scheduledList.append(postCard(q, "scheduled")));
+  else scheduledList.append(h("div", { class: "empty", text: "予約済みの投稿はありません" }));
+
+  const since = Date.now() - 3 * DAY;
+  const trouble = sortByWhen(state.queue.filter((q) => ["failed", "partial", "skipped", "expired"].includes(q.status)
+    && (toDate(q.posted_at || q.scheduled_at) || new Date(0)).getTime() >= since), "scheduled_at", true);
+  $("trouble-wrap").hidden = trouble.length === 0;
+  const tl = $("trouble-list");
+  tl.replaceChildren(...trouble.map((q) => h("div", { class: "history-card" },
+    h("div", { class: "card-head" },
+      h("span", { class: "when", text: fmtDateTime(toDate(q.scheduled_at)) }),
+      h("span", { class: "badge bad", text: STATUS_NAMES[q.status] || q.status })),
+    h("div", { class: "part", text: (q.parts && q.parts[0]) || "" }),
+    q.error ? h("div", { class: "error-text", text: q.error }) : null)));
+}
+
+function renderNeta() {
+  const pl = $("neta-pending-list"), ul = $("neta-used-list");
+  const unused = state.neta.unused;
+  const items = unused.map((m) => h("div", { class: "neta-item", text: m }))
+    .concat(state.pendingNeta.map((m) => h("div", { class: "neta-item is-busy" }, m, h("span", { class: "date", text: "反映待ち" }))));
+  $("neta-pending-count").textContent = String(unused.length);
+  pl.replaceChildren(...(items.length ? items : [h("div", { class: "empty", text: "未使用のネタはありません" })]));
+  const used = state.neta.used.slice(0, 50).map((line) => {
+    const m = line.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/);
+    return h("div", { class: "neta-item" }, m ? h("span", { class: "date", text: m[1] }) : null, m ? m[2] : line);
+  });
+  ul.replaceChildren(...(used.length ? used : [h("div", { class: "empty", text: "まだありません" })]));
+}
+
+function renderHistory() {
+  const list = $("history-list");
+  const items = sortByWhen(state.history, "posted_at", true);
+  if (!items.length) {
+    list.replaceChildren(h("div", { class: "empty", text: "まだ投稿はありません" }));
+    return;
+  }
+  list.replaceChildren(...items.map((it) => {
+    const ids = Array.isArray(it.post_ids) ? it.post_ids : [];
+    const dry = ids.some((x) => String(x).startsWith("dry-run"));
+    const link = typeof it.permalink === "string" && /^https:\/\//.test(it.permalink)
+      ? h("a", { class: "btn", href: it.permalink, target: "_blank", rel: "noopener noreferrer", text: "Threadsで見る" }) : null;
+    return h("article", { class: "history-card", "data-id": it.id || "" },
+      h("div", { class: "card-head" },
+        h("span", { class: "when", text: fmtDateTime(toDate(it.posted_at)) }),
+        h("span", { class: "badge", text: it.source === "neta" ? "ネタ帳から" : "テーマから" }),
+        dry ? h("span", { class: "badge pending", text: "試運転" }) : null),
+      partsView(it.parts),
+      dry ? h("div", { class: "meta", text: "試運転（実際には投稿されていません）" }) : null,
+      link ? h("div", { class: "actions" }, link) : null);
+  }));
+}
+
+function renderOps() {
+  const s = state.settings;
+  const ready = !!(state.conn && s);
+  $("mode-approval").setAttribute("aria-pressed", String(!s || s.mode !== "auto"));
+  $("mode-auto").setAttribute("aria-pressed", String(!!s && s.mode === "auto"));
+  $("mode-approval").disabled = !ready;
+  $("mode-auto").disabled = !ready;
+  const pause = $("pause-btn");
+  pause.disabled = !ready;
+  pause.textContent = s && s.paused ? "再開" : "緊急停止";
+  pause.className = s && s.paused ? "btn primary block" : "btn danger block";
+  $("plan-now").disabled = !ready;
+  $("neta-submit").disabled = !state.conn;
+  $("settings-save").disabled = !ready;
+}
+
+// トークンの知らせ（当てはまるものをすべて並べる）
+function tokenAlerts(rec, now) {
+  const alerts = [];
+  if (!rec) {
+    alerts.push({ red: false, text: "Threadsのトークンの初回セットアップがまだです（「設定」→「初回セットアップ」）" });
+    return alerts;
+  }
+  const exp = toDate(rec.expires_at);
+  const expired = !!exp && exp.getTime() <= now.getTime();
+  if (exp) {
+    const n = daysLeft(exp, now);
+    if (expired) alerts.push({ red: true, text: "Threadsのトークンの期限が切れています。投稿できません（取り直しが必要です）" });
+    else if (n <= 3) alerts.push({ red: true, text: `Threadsのトークンの期限まで、あと${n}日です。今すぐ「設定」→「トークンを更新」を押してください` });
+    else if (n <= 14) alerts.push({ red: false, text: `Threadsのトークンの期限まで、あと${n}日です（「設定」→「トークンを更新」）` });
+  }
+  const updated = toDate(rec.updated_at);
+  if (!expired && updated && now.getTime() - updated.getTime() >= 8 * DAY) {
+    alerts.push({ red: false, text: "トークンの自動更新が止まっているようです。「設定」→「トークンを更新」を押し、GitHubの Actions の「4. トークン」を確かめてください" });
+  }
+  const gh = toDate(rec.gh_key_expires_at);
+  if (gh) {
+    const n = daysLeft(gh, now);
+    if (n <= 30) alerts.push({ red: false, text: `GitHubの鍵の期限が近づいています（あと${n}日）。手作業のパートH-2〜H-3で作り直してください` });
+  }
+  return alerts;
+}
+
+function renderTokenBanner() {
+  const banner = $("token-banner");
+  if (!state.conn || !state.tokenLoaded) { banner.hidden = true; return; }
+  const alerts = tokenAlerts(state.token, new Date());
+  if (!alerts.length) { banner.hidden = true; banner.replaceChildren(); return; }
+  banner.className = "banner " + (alerts.some((a) => a.red) ? "danger" : "warn");
+  banner.replaceChildren(...alerts.map((a) => h("p", { text: a.text })));
+  banner.hidden = false;
+}
+
+function renderToken() {
+  const status = $("token-status"), note = $("token-refresh-note"), btn = $("token-refresh");
+  $("token-setup").disabled = !state.conn;
+  if (!state.conn || !state.tokenLoaded) {
+    status.textContent = "—";
+    btn.disabled = true;
+    note.textContent = "";
+    return;
+  }
+  const rec = state.token, now = new Date();
+  if (!rec) {
+    status.textContent = "未セットアップ（初回セットアップがまだです）";
+    btn.disabled = true;
+    note.textContent = "初回セットアップが終わると、更新できるようになります。";
+    return;
+  }
+  const lines = [];
+  const exp = toDate(rec.expires_at);
+  const expired = !!exp && exp.getTime() <= now.getTime();
+  if (exp && !expired) lines.push(`期限：${fmtYMD(exp)}（あと${daysLeft(exp, now)}日）。毎週月曜の朝に自動で延びます。`);
+  else if (exp) lines.push(`期限：${fmtYMD(exp)}（期限切れ）。トークンを取り直してください。`);
+  else lines.push("期限の記録が読めません");
+  const ghExp = toDate(rec.gh_key_expires_at);
+  if (ghExp) lines.push(`GitHubの鍵（GH_SECRETS_TOKEN）の期限：${fmtYMD(ghExp)}（あと${daysLeft(ghExp, now)}日）`);
+  status.textContent = lines.join("\n");
+
+  const updated = toDate(rec.updated_at);
+  const openAt = updated ? new Date(updated.getTime() + DAY) : null;
+  if (expired) {
+    btn.disabled = true;
+    note.textContent = "期限が切れているので、更新できません（取り直しが必要です）。";
+  } else if (openAt && now.getTime() < openAt.getTime()) {
+    btn.disabled = true;
+    note.textContent = `前回の発行・更新から24時間たっていないので、まだ押せません。${fmtFull(openAt)} から押せます。`;
+  } else {
+    btn.disabled = false;
+    note.textContent = "";
+  }
+}
+
+function renderRuns() {
+  const list = $("runs-list");
+  if (!state.runs.length) { list.replaceChildren(h("div", { class: "muted", text: "まだありません" })); return; }
+  const label = (r) => {
+    if (r.status !== "completed") return { text: r.status === "queued" ? "待機中" : "実行中", cls: "badge busy" };
+    if (r.conclusion === "success") return { text: "成功", cls: "badge posted" };
+    if (r.conclusion === "failure") return { text: "失敗", cls: "badge bad" };
+    if (r.conclusion === "cancelled") return { text: "中止", cls: "badge" };
+    return { text: r.conclusion || "終了", cls: "badge" };
+  };
+  list.replaceChildren(...state.runs.map((r) => {
+    const l = label(r);
+    const name = /^https:\/\//.test(r.html_url || "")
+      ? h("a", { class: "name", href: r.html_url, target: "_blank", rel: "noopener noreferrer", text: r.name || "" })
+      : h("span", { class: "name", text: r.name || "" });
+    return h("div", { class: "run" }, h("span", { class: l.cls, text: l.text }), name,
+      h("span", { class: "time", text: fmtDateTime(toDate(r.created_at)) }));
+  }));
+}
+
+// ===== 設定フォーム =====
+function timeOptions() {
+  const list = [];
+  for (let m = 6 * 60 + 30; m <= 23 * 60 + 30; m += 30) {
+    list.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+  }
+  return list;
+}
+function buildSettingsForm() {
+  const ppd = $("set-posts-per-day");
+  for (let i = 1; i <= 10; i++) ppd.append(h("option", { value: String(i), text: `${i}件` }));
+  const box = $("times-box");
+  const opts = timeOptions();
+  for (let i = 1; i <= 10; i++) {
+    const sel = h("select", { id: `set-time-${i}`, "aria-label": `${i}つ目の時刻` });
+    opts.forEach((t) => sel.append(h("option", { value: t, text: t })));
+    sel.value = DEFAULT_TIMES[i - 1];
+    box.append(h("label", { "data-time-row": i }, `${i}つ目`, sel));
+  }
+}
+function setTimeValue(sel, value) {
+  if (![...sel.options].some((o) => o.value === value)) sel.append(h("option", { value, text: value }));
+  sel.value = value;
+}
+function showTimeRows() {
+  const n = parseInt($("set-posts-per-day").value, 10) || 1;
+  for (let i = 1; i <= 10; i++) document.querySelector(`[data-time-row="${i}"]`).hidden = i > n;
+}
+function fillSettingsForm() {
+  const s = state.settings;
+  if (!s || state.formDirty) return;
+  $("set-handle").value = s.handle;
+  $("set-persona").value = s.persona || "";
+  $("set-audience").value = s.audience || "";
+  $("set-themes").value = s.themes.join("\n");
+  $("set-posts-per-day").value = String(s.posts_per_day);
+  // 保存ずみの時刻を使い、足りない欄には初期値を入れておく
+  const times = alignTimes(s.post_times, 10);
+  for (let i = 1; i <= 10; i++) setTimeValue($(`set-time-${i}`), times[i - 1]);
+  showTimeRows();
+  $("set-max-per-day").value = String(s.max_posts_per_day);
+  $("settings-errors").hidden = true;
+}
+function toMinutes(t) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
+}
+function readSettingsForm() {
+  const n = parseInt($("set-posts-per-day").value, 10) || 1;
+  const times = [];
+  for (let i = 1; i <= n; i++) times.push($(`set-time-${i}`).value);
+  return {
+    handle: $("set-handle").value.trim().replace(/^@+/, ""),
+    persona: $("set-persona").value.trim(),
+    audience: $("set-audience").value.trim(),
+    themes: $("set-themes").value.split(/\r?\n/).map((t) => t.trim()).filter((t) => t),
+    posts_per_day: n,
+    post_times: times,
+    max_posts_per_day: Number($("set-max-per-day").value)
+  };
+}
+function validateSettings(v) {
+  const errors = [];
+  if (!/^[A-Za-z0-9_.]{1,30}$/.test(v.handle)) errors.push("アカウント名は、英数字・_・. の30文字以内で入れてください");
+  if (!v.themes.length) errors.push("テーマを1つ以上入れてください");
+  const mins = v.post_times.map(toMinutes);
+  if (mins.some((m) => isNaN(m) || m < 6 * 60 + 30 || m > 23 * 60 + 30)) errors.push("投稿の時刻は 6:30〜23:30 の間にしてください");
+  const sorted = [...mins].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] - sorted[i - 1] < 30) { errors.push("投稿の時刻は、30分以上あけてください（同じ時刻も不可）"); break; }
+  }
+  if (!Number.isInteger(v.max_posts_per_day) || v.max_posts_per_day < 1 || v.max_posts_per_day > 50) errors.push("上限は 1〜50 の数字にしてください");
+  else if (v.max_posts_per_day < v.posts_per_day) errors.push("上限は、1日に作る投稿の数以上にしてください");
+  return errors;
+}
+
+// ===== 操作 =====
+async function onCardAction(card, action, button) {
+  const id = card.getAttribute("data-id");
+  const item = state.queue.find((q) => q.id === id);
+  if (!item) return;
+  const markBusy = () => { state.pendingIds.add(id); renderHome(); };
+  const fail = (e) => { state.pendingIds.delete(id); renderHome(); toast(e.message, true); };
+  try {
+    if (action === "approve") {
+      markBusy();
+      await runControl("approve", id);
+      toast("承認を送りました。反映まで1分ほどかかります");
+    } else if (action === "reject") {
+      if (!(await ask("この下書きを却下しますか？"))) return;
+      markBusy();
+      await runControl("reject", id);
+      toast("却下を送りました");
+    } else if (action === "cancel") {
+      if (!(await ask("この予約を取り消しますか？"))) return;
+      markBusy();
+      await runControl("cancel", id);
+      toast("取り消しを送りました");
+    } else if (action === "edit") {
+      state.editing.set(id, [...(item.parts || [""])]);
+      renderHome();
+      const ta = document.querySelector(`.post-card[data-id="${CSS.escape(id)}"] textarea.edit-part`);
+      if (ta) ta.focus();
+    } else if (action === "add-part") {
+      state.editing.get(id).push("");
+      renderHome();
+      const all = document.querySelectorAll(`.post-card[data-id="${CSS.escape(id)}"] textarea.edit-part`);
+      if (all.length) all[all.length - 1].focus();
+    } else if (action === "remove-part") {
+      const parts = state.editing.get(id);
+      parts.splice(Number(button.getAttribute("data-index")), 1);
+      renderHome();
+    } else if (action === "cancel-edit") {
+      state.editing.delete(id);
+      renderHome();
+    } else if (action === "save-edit") {
+      const parts = splitParts(state.editing.get(id).join("\n---\n"));
+      if (checkParts(parts, state.settings).length) return;
+      state.editing.delete(id);
+      markBusy();
+      await runControl("edit", id, parts.join("\n---\n"));
+      toast("修正を送りました。反映まで1分ほどかかります");
+    }
+  } catch (e) {
+    fail(e);
+  }
+}
+
+async function onConnect() {
+  const conn = {
+    owner: $("conn-owner").value.trim(),
+    repo: $("conn-repo").value.trim(),
+    token: $("conn-token").value.trim()
+  };
+  if (!conn.owner || !conn.repo || !conn.token) {
+    setConnStatus("ユーザー名・リポジトリ名・トークンを、すべて入れてください", "bad");
+    return;
+  }
+  $("conn-save").disabled = true;
+  setConnStatus("確かめています…", "");
+  try {
+    await readFile("settings.json", conn); // まず settings.json を読めるか確かめる
+    state.conn = conn;
+    state.repoInfo = null;
+    state.formDirty = false;
+    saveConn(conn);
+    await loadAll();
+    setConnStatus("接続しました", "good");
+    toast("接続しました");
+  } catch (e) {
+    setConnStatus(`接続できませんでした：${e.message}`, "bad");
+  } finally {
+    $("conn-save").disabled = false;
+  }
+}
+
+function onDisconnect() {
+  clearConn();
+  reloadTimers.forEach(clearTimeout);
+  Object.assign(state, {
+    conn: null, repoInfo: null, settings: null, queue: [], history: [], neta: { unused: [], used: [] },
+    token: null, tokenLoaded: false, runs: [], loadedAt: null, formDirty: false
+  });
+  state.pendingIds.clear();
+  state.pendingNeta = [];
+  state.editing.clear();
+  $("conn-owner").value = "";
+  $("conn-repo").value = "";
+  $("conn-token").value = "";
+  setConnStatus("接続を解除しました（この端末から消しました）", "");
+  renderAll();
+}
+
+function bind() {
+  for (const t of TABS) $(`tab-btn-${t}`).addEventListener("click", () => switchTab(t));
+  $("reload-btn").addEventListener("click", () => loadAll());
+
+  for (const listId of ["pending-list", "scheduled-list"]) {
+    const list = $(listId);
+    list.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("[data-action]");
+      const card = ev.target.closest(".post-card");
+      if (!btn || !card || btn.disabled) return;
+      onCardAction(card, btn.getAttribute("data-action"), btn);
+    });
+    list.addEventListener("input", (ev) => {
+      const ta = ev.target.closest("textarea.edit-part");
+      const card = ev.target.closest(".post-card");
+      if (!ta || !card) return;
+      const parts = state.editing.get(card.getAttribute("data-id"));
+      if (!parts) return;
+      parts[Number(ta.getAttribute("data-index"))] = ta.value;
+      updateEditValidity(card);
+    });
+  }
+
+  $("neta-submit").addEventListener("click", async () => {
+    const text = $("neta-input").value.trim();
+    if (!text) { toast("ネタを入れてください", true); return; }
+    const btn = $("neta-submit");
+    btn.disabled = true;
+    try {
+      await runControl("neta-add", "", text);
+      state.pendingNeta.push(...text.split(/\r?\n/).map((l) => l.trim().replace(/^- /, "")).filter((l) => l));
+      $("neta-input").value = "";
+      renderNeta();
+      toast("ネタを送りました。反映まで1分ほどかかります");
+    } catch (e) {
+      toast(e.message, true);
+    } finally {
+      btn.disabled = !state.conn;
+    }
+  });
+
+  $("mode-approval").addEventListener("click", async () => {
+    if (!state.settings || state.settings.mode !== "auto") return;
+    try { await updateSettings((s) => { s.mode = "approval"; }); toast("「承認してから投稿」にしました"); }
+    catch (e) { toast(e.message, true); }
+  });
+  $("mode-auto").addEventListener("click", async () => {
+    if (!state.settings || state.settings.mode === "auto") return;
+    if (!(await ask("完全自動にしますか？\nAIが作った下書きが、承認なしで投稿されるようになります。"))) return;
+    try { await updateSettings((s) => { s.mode = "auto"; }); toast("完全自動にしました"); }
+    catch (e) { toast(e.message, true); }
+  });
+  $("pause-btn").addEventListener("click", async () => {
+    if (!state.settings) return;
+    const stop = !state.settings.paused;
+    if (stop && !(await ask("緊急停止しますか？\n下書きづくりも投稿も止まります。"))) return;
+    try {
+      await updateSettings((s) => { s.paused = stop; });
+      toast(stop ? "緊急停止しました" : "再開しました");
+    } catch (e) { toast(e.message, true); }
+  });
+  $("plan-now").addEventListener("click", async () => {
+    const btn = $("plan-now");
+    btn.disabled = true;
+    try { await dispatch("plan.yml"); toast("下書きづくりを始めました。1〜2分で反映されます"); }
+    catch (e) { toast(e.message, true); }
+    finally { btn.disabled = !(state.conn && state.settings); }
+  });
+
+  $("token-refresh").addEventListener("click", async () => {
+    const btn = $("token-refresh");
+    btn.disabled = true;
+    try { await dispatch("token.yml", { action: "refresh" }); toast("トークンの更新を始めました"); }
+    catch (e) { toast(e.message, true); renderToken(); }
+  });
+  $("token-setup").addEventListener("click", async () => {
+    if (!(await ask("短期トークンを出してから1時間以内に押してください。\n初回セットアップを始めますか？"))) return;
+    try { await dispatch("token.yml", { action: "setup" }); toast("初回セットアップを始めました。1〜2分で反映されます"); }
+    catch (e) { toast(e.message, true); }
+  });
+
+  const form = ["set-handle", "set-persona", "set-audience", "set-themes", "set-posts-per-day", "set-max-per-day"];
+  for (let i = 1; i <= 10; i++) form.push(`set-time-${i}`);
+  form.forEach((id) => $(id).addEventListener("input", () => { state.formDirty = true; }));
+  $("set-posts-per-day").addEventListener("change", () => { state.formDirty = true; showTimeRows(); });
+  $("settings-save").addEventListener("click", async () => {
+    const v = readSettingsForm();
+    const errors = validateSettings(v);
+    const box = $("settings-errors");
+    if (errors.length) {
+      box.replaceChildren(h("ul", null, errors.map((e) => h("li", { text: e }))));
+      box.hidden = false;
+      box.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    box.hidden = true;
+    const btn = $("settings-save");
+    btn.disabled = true;
+    try {
+      await updateSettings((s) => Object.assign(s, v));
+      state.formDirty = false;
+      fillSettingsForm();
+      toast("設定を保存しました");
+    } catch (e) {
+      box.replaceChildren(h("ul", null, h("li", { text: e.message })));
+      box.hidden = false;
+    } finally {
+      btn.disabled = !(state.conn && state.settings);
+    }
+  });
+
+  $("conn-save").addEventListener("click", onConnect);
+  $("conn-clear").addEventListener("click", onDisconnect);
+  $("confirm-yes").addEventListener("click", () => closeAsk(true));
+  $("confirm-no").addEventListener("click", () => closeAsk(false));
+  $("confirm-back").addEventListener("click", (ev) => { if (ev.target === $("confirm-back")) closeAsk(false); });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !$("confirm-back").hidden) closeAsk(false); });
+
+  // 画面に戻ってきたら読み直す
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && state.conn) loadAll(); });
+}
+
+function init() {
+  buildSettingsForm();
+  bind();
+  state.conn = loadConn();
+  let tab = "home";
+  try { tab = localStorage.getItem(LS_TAB) || "home"; } catch (e) { /* 何もしない */ }
+  if (state.conn) {
+    $("conn-owner").value = state.conn.owner;
+    $("conn-repo").value = state.conn.repo;
+    $("conn-token").value = state.conn.token;
+    switchTab(tab);
+    renderAll();
+    loadAll();
+  } else {
+    switchTab("settings");
+    renderAll();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
