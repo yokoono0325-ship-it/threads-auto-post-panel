@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Threads 自動投稿</title>
+<title>Threads自動投稿</title>
 <style>
 :root {
   --bg: #f5f5f7;
@@ -67,17 +67,8 @@ header.top {
   background: var(--bg);
   padding: 12px 16px 8px;
   max-width: 640px; margin: 0 auto;
-  display: flex; align-items: center; gap: 8px;
 }
-header.top h1 { font-size: 18px; margin: 0; flex: 1; letter-spacing: .02em; }
-.updated { font-size: 12px; color: var(--muted); }
-.icon-btn {
-  min-width: 44px; min-height: 44px; border-radius: 22px;
-  border: 1px solid var(--line); background: var(--surface); color: var(--text);
-  font-size: 18px; cursor: pointer;
-}
-.icon-btn.spin span { display: inline-block; animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+header.top h1 { font-size: 18px; margin: 0; letter-spacing: .02em; }
 
 .banner {
   border-radius: var(--radius); padding: 12px 14px; margin: 8px 0 12px;
@@ -87,18 +78,19 @@ header.top h1 { font-size: 18px; margin: 0; flex: 1; letter-spacing: .02em; }
 .banner p + p { margin-top: 6px; }
 .banner.warn { background: var(--warn-soft); color: var(--warn); }
 .banner.danger { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+.banner .btn { margin-top: 10px; }
 
 h2 { font-size: 15px; margin: 22px 0 8px; color: var(--muted); font-weight: 600; letter-spacing: .03em; }
 h2 .count-pill { margin-left: 6px; }
+.lead { font-size: 14px; color: var(--muted); margin: -2px 0 10px; }
 .section {
   background: var(--surface); border-radius: var(--radius); padding: 16px;
   margin-bottom: 12px; border: 1px solid var(--line);
 }
-.section h3 { margin: 0 0 10px; font-size: 16px; }
 .muted { color: var(--muted); font-size: 14px; }
 .empty { color: var(--muted); font-size: 14px; padding: 14px; text-align: center; background: var(--surface); border-radius: var(--radius); border: 1px dashed var(--line); }
 
-.post-card, .history-card {
+.post-card, .history-card, .unposted-card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 14px; margin-bottom: 10px; overflow-wrap: anywhere;
 }
@@ -107,7 +99,7 @@ h2 .count-pill { margin-left: 6px; }
 .when { font-weight: 700; font-size: 15px; margin-right: auto; }
 .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
 .badge.pending { background: var(--warn-soft); color: var(--warn); }
-.badge.approved, .badge.ready, .badge.posted { background: var(--ok-soft); color: var(--ok); }
+.badge.approved, .badge.ready, .badge.good { background: var(--ok-soft); color: var(--ok); }
 .badge.busy { background: var(--accent-soft); color: var(--accent); }
 .badge.bad { background: var(--danger-soft); color: var(--danger); }
 .count-pill { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--surface-2); color: var(--muted); }
@@ -116,6 +108,20 @@ h2 .count-pill { margin-left: 6px; }
 .part-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
 .meta { font-size: 13px; color: var(--muted); margin-top: 8px; }
 .error-text { font-size: 13px; color: var(--danger); margin-top: 6px; }
+
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary .card-head::after { content: "▾"; color: var(--muted); font-size: 12px; transition: transform .15s; }
+details[open] > summary .card-head::after { transform: rotate(180deg); }
+.preview { font-size: 15px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.preview.one { -webkit-line-clamp: 1; }
+.detail-body { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.summary-link { display: inline-flex; align-items: center; min-height: 40px; margin-top: 6px; font-size: 14px; font-weight: 600; }
+
+.runs-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0 14px; margin-top: 22px; }
+.runs-box > summary { padding: 14px 0; font-weight: 600; display: flex; justify-content: space-between; }
+.runs-box > summary::after { content: "▾"; color: var(--muted); }
+.runs-box[open] > summary::after { content: "▴"; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .actions button { flex: 1 1 0; min-width: 88px; }
@@ -130,46 +136,43 @@ button.btn, .btn {
 .btn.ghost { background: transparent; }
 .btn.block { width: 100%; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn:focus-visible, .icon-btn:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.reload-row { margin-top: 18px; }
 
 .edit-area { display: grid; gap: 10px; }
 .edit-row { display: grid; gap: 4px; }
 .edit-row-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); }
 .edit-row-head .over { color: var(--danger); font-weight: 700; }
-.link-btn { background: none; border: none; color: var(--danger); font-size: 13px; padding: 8px 4px; cursor: pointer; font-family: inherit; }
 
 label.field { display: block; margin-bottom: 14px; }
-label.field > span { display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-label.field small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; font-weight: 400; }
+label.field > span, .field-title { display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
 input[type=text], input[type=password], input[type=number], textarea, select {
   width: 100%; font-size: 16px; font-family: inherit; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
   padding: 11px 12px; min-height: 46px;
 }
 textarea { resize: vertical; line-height: 1.6; }
-.times { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.times { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 14px; }
 .times label { font-size: 12px; color: var(--muted); }
 .form-errors { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
 .form-errors ul { margin: 0; padding-left: 18px; }
 
-.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 12px; }
-.segmented button { min-height: 44px; border: none; border-radius: 9px; background: transparent; color: var(--muted); font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; }
-.segmented button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-.row-gap { display: grid; gap: 10px; }
+.mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mode-row button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.two-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 
 .neta-item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 6px; font-size: 15px; overflow-wrap: anywhere; }
-.neta-item.is-busy { border-style: dashed; color: var(--muted); }
 .neta-item .date { font-size: 12px; color: var(--muted); display: block; }
 
-.run { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-.run:last-child { border-bottom: none; }
+.run { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .run .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .run .time { color: var(--muted); font-size: 12px; white-space: nowrap; }
 
 .status-line { font-size: 14px; margin-top: 8px; }
 .status-line.bad { color: var(--danger); }
 .status-line.good { color: var(--ok); }
-.token-status { font-size: 15px; white-space: pre-line; }
+.token-status { font-size: 15px; white-space: pre-line; margin-bottom: 10px; }
+.row-gap { display: grid; gap: 10px; }
 
 nav.tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
@@ -179,10 +182,9 @@ nav.tabbar {
 nav.tabbar .inner { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
 nav.tabbar button {
   height: var(--tabbar-h); border: none; background: none; color: var(--muted);
-  font-size: 12px; font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer;
+  font-size: 13px; font-family: inherit; cursor: pointer;
 }
-nav.tabbar button .ico { font-size: 20px; line-height: 1; }
-nav.tabbar button[aria-selected="true"] { color: var(--accent); font-weight: 700; }
+nav.tabbar button[aria-selected="true"] { color: var(--accent); font-weight: 700; box-shadow: inset 0 3px 0 var(--accent); }
 
 #toast {
   position: fixed; left: 16px; right: 16px; bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
@@ -201,43 +203,47 @@ nav.tabbar button[aria-selected="true"] { color: var(--accent); font-weight: 700
 <body>
 
 <header class="top">
-  <h1>Threads 自動投稿</h1>
-  <span class="updated" id="updated-at"></span>
-  <button class="icon-btn" id="reload-btn" type="button" aria-label="読み直す"><span>↻</span></button>
+  <h1>Threads自動投稿</h1>
 </header>
 
 <div class="wrap">
   <div id="token-banner" class="banner" role="status" hidden></div>
-  <div id="paused-banner" class="banner danger" role="status" hidden>
-    <p>緊急停止中です。下書きづくりも投稿もしません（「設定」→「再開」で戻せます）。</p>
-  </div>
-  <div id="not-connected" class="banner warn" hidden>
-    <p>まだ接続していません。「設定」タブのいちばん下の「接続」で、GitHub のユーザー名・リポジトリ名・トークンを入れてください。</p>
-  </div>
 
   <!-- ホーム -->
   <section id="view-home">
+    <div id="paused-banner" class="banner danger" role="status" hidden>
+      <p>緊急停止中です。下書きづくりも投稿も止まっています。</p>
+      <button class="btn primary block" type="button" data-action="resume">再開する</button>
+    </div>
+
+    <h2>投稿のしかた</h2>
+    <div class="mode-row" role="group" aria-label="投稿のしかた">
+      <button class="btn" id="mode-approval" type="button" aria-pressed="true">承認してから投稿</button>
+      <button class="btn" id="mode-auto" type="button" aria-pressed="false">完全自動</button>
+    </div>
+    <div class="two-buttons">
+      <button class="btn" id="plan-now" type="button">今すぐ下書き</button>
+      <button class="btn danger" id="pause-btn" type="button">緊急停止</button>
+    </div>
+
     <h2>承認待ち <span class="count-pill" id="pending-count">0</span></h2>
     <div id="pending-list"></div>
     <h2>予約済み <span class="count-pill" id="scheduled-count">0</span></h2>
     <div id="scheduled-list"></div>
-    <div id="trouble-wrap" hidden>
-      <h2>最近うまくいかなかったもの</h2>
-      <div id="trouble-list"></div>
-    </div>
+
+    <div class="reload-row"><button class="btn block" type="button" data-action="reload">最新の内容を読み直す</button></div>
   </section>
 
   <!-- ネタ帳 -->
   <section id="view-neta" hidden>
-    <h2>ネタを足す</h2>
+    <h2>ネタ帳</h2>
+    <p class="lead">投稿したいことを一言で。翌朝、これをもとに AI が下書きを作ります。</p>
     <div class="section">
-      <label class="field">
-        <span>メモ</span>
-        <textarea id="neta-input" rows="4" placeholder="例：朝の散歩で気づいたこと&#10;（1行に1つのネタ。何行でも書けます）"></textarea>
-      </label>
-      <button class="btn primary block" id="neta-submit" type="button">ネタ帳に追加</button>
+      <textarea id="neta-input" rows="4" aria-label="ネタ"></textarea>
+      <div class="actions"><button class="btn primary" id="neta-submit" type="button">ネタ帳に追加</button></div>
     </div>
-    <h2>未使用 <span class="count-pill" id="neta-pending-count">0</span></h2>
+    <h2>これから使うネタ</h2>
+    <p class="lead">上から順に使います</p>
     <div id="neta-pending-list"></div>
     <h2>使用済み</h2>
     <div id="neta-used-list"></div>
@@ -247,65 +253,18 @@ nav.tabbar button[aria-selected="true"] { color: var(--accent); font-weight: 700
   <section id="view-history" hidden>
     <h2>投稿履歴</h2>
     <div id="history-list"></div>
+    <h2>投稿しなかったもの</h2>
+    <div id="unposted-list"></div>
+    <details id="runs-box" class="runs-box">
+      <summary>最近の自動実行</summary>
+      <div id="runs-list"></div>
+    </details>
+    <div class="reload-row"><button class="btn block" type="button" data-action="reload">最新の内容を読み直す</button></div>
   </section>
 
   <!-- 設定 -->
   <section id="view-settings" hidden>
-    <h2>運用</h2>
-    <div class="section row-gap">
-      <div>
-        <h3>モード</h3>
-        <div class="segmented" role="group" aria-label="モード">
-          <button id="mode-approval" type="button" aria-pressed="true">承認してから投稿</button>
-          <button id="mode-auto" type="button" aria-pressed="false">完全自動</button>
-        </div>
-      </div>
-      <button class="btn danger block" id="pause-btn" type="button">緊急停止</button>
-      <button class="btn block" id="plan-now" type="button">今すぐ下書きを作る</button>
-    </div>
-
-    <h2>Threadsのトークン</h2>
-    <div class="section row-gap">
-      <div id="token-status" class="token-status">—</div>
-      <button class="btn primary block" id="token-refresh" type="button">トークンを更新</button>
-      <div id="token-refresh-note" class="muted"></div>
-      <button class="btn block" id="token-setup" type="button">初回セットアップ</button>
-    </div>
-
-    <h2>アカウントと投稿</h2>
-    <div class="section">
-      <div id="settings-errors" class="form-errors" hidden></div>
-      <label class="field"><span>Threadsのアカウント名（@なし）</span>
-        <input type="text" id="set-handle" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：my_account">
-      </label>
-      <label class="field"><span>あなたの立場</span>
-        <input type="text" id="set-persona" placeholder="例：子育て中の会社員">
-      </label>
-      <label class="field"><span>届けたい相手</span>
-        <input type="text" id="set-audience" placeholder="例：朝が苦手な人">
-      </label>
-      <label class="field"><span>発信テーマ</span>
-        <textarea id="set-themes" rows="3" placeholder="1行に1つ"></textarea>
-        <small>1行に1つ書いてください。</small>
-      </label>
-      <label class="field"><span>1日に作る投稿の数</span>
-        <select id="set-posts-per-day"></select>
-      </label>
-      <div class="field">
-        <span style="display:block;font-size:14px;font-weight:600;margin-bottom:4px">投稿の時刻（日本時間）</span>
-        <div class="times" id="times-box"></div>
-        <small class="muted">6:30〜23:30 の間で、30分以上あけてください。</small>
-      </div>
-      <label class="field"><span>1日に投稿する数の上限（安全装置）</span>
-        <input type="number" id="set-max-per-day" inputmode="numeric" min="1" max="50">
-      </label>
-      <button class="btn primary block" id="settings-save" type="button">設定を保存</button>
-    </div>
-
-    <h2>最近の自動実行</h2>
-    <div class="section"><div id="runs-list"><div class="muted">—</div></div></div>
-
-    <h2>接続（この端末にだけ保存）</h2>
+    <h2>GitHub との接続</h2>
     <div class="section">
       <label class="field"><span>GitHub のユーザー名</span>
         <input type="text" id="conn-owner" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -313,9 +272,8 @@ nav.tabbar button[aria-selected="true"] { color: var(--accent); font-weight: 700
       <label class="field"><span>リポジトリ名</span>
         <input type="text" id="conn-repo" autocomplete="off" autocapitalize="off" spellcheck="false">
       </label>
-      <label class="field"><span>GitHub のトークン</span>
+      <label class="field"><span>アクセストークン</span>
         <input type="password" id="conn-token" autocomplete="off" autocapitalize="off" spellcheck="false">
-        <small>Contents と Actions を Read and write にしたトークン。この端末のブラウザにだけ保存します。</small>
       </label>
       <div class="actions">
         <button class="btn primary" id="conn-save" type="button">接続</button>
@@ -323,15 +281,55 @@ nav.tabbar button[aria-selected="true"] { color: var(--accent); font-weight: 700
       </div>
       <div id="conn-status" class="status-line"></div>
     </div>
+
+    <h2>発信の設定</h2>
+    <div class="section">
+      <label class="field"><span>Threads のアカウント名</span>
+        <input type="text" id="set-handle" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="field"><span>あなたの立場</span>
+        <input type="text" id="set-persona">
+      </label>
+      <label class="field"><span>届けたい相手</span>
+        <input type="text" id="set-audience">
+      </label>
+      <label class="field"><span>発信テーマ（1行に1つ）</span>
+        <textarea id="set-themes" rows="4"></textarea>
+      </label>
+    </div>
+
+    <h2>投稿の数と時間</h2>
+    <div class="section">
+      <label class="field"><span>1日の投稿の数</span>
+        <select id="set-posts-per-day"></select>
+      </label>
+      <span class="field-title">投稿の時間</span>
+      <div class="times" id="times-box"></div>
+      <label class="field"><span>1日の投稿の上限</span>
+        <input type="number" id="set-max-per-day" inputmode="numeric" min="1" max="50">
+      </label>
+    </div>
+    <div id="settings-errors" class="form-errors" hidden></div>
+    <button class="btn primary block" id="settings-save" type="button">設定を保存</button>
+
+    <h2>Threads のトークン</h2>
+    <div class="section">
+      <div id="token-status" class="token-status">—</div>
+      <div class="row-gap">
+        <button class="btn primary block" id="token-refresh" type="button">トークンを更新</button>
+        <div id="token-refresh-note" class="muted"></div>
+        <button class="btn block" id="token-setup" type="button">初回セットアップ</button>
+      </div>
+    </div>
   </section>
 </div>
 
 <nav class="tabbar" aria-label="タブ">
   <div class="inner" role="tablist">
-    <button id="tab-btn-home" type="button" role="tab" aria-selected="true"><span class="ico">⌂</span>ホーム</button>
-    <button id="tab-btn-neta" type="button" role="tab" aria-selected="false"><span class="ico">✎</span>ネタ帳</button>
-    <button id="tab-btn-history" type="button" role="tab" aria-selected="false"><span class="ico">☰</span>履歴</button>
-    <button id="tab-btn-settings" type="button" role="tab" aria-selected="false"><span class="ico">⚙</span>設定</button>
+    <button id="tab-btn-home" type="button" role="tab" aria-selected="true">ホーム</button>
+    <button id="tab-btn-neta" type="button" role="tab" aria-selected="false">ネタ帳</button>
+    <button id="tab-btn-history" type="button" role="tab" aria-selected="false">履歴</button>
+    <button id="tab-btn-settings" type="button" role="tab" aria-selected="false">設定</button>
   </div>
 </nav>
 
@@ -355,24 +353,29 @@ const API = "https://api.github.com";
 const LS_CONN = "tpost-panel-conn";
 const LS_TAB = "tpost-panel-tab";
 const DAY = 86400000;
-const DEFAULT_TIMES = ["07:30", "09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00"];
+const DEFAULT_TIMES = ["07:00", "12:00", "19:00", "09:00", "21:00", "08:00", "15:00", "17:00", "10:00", "20:00"];
 const DEFAULTS = {
   handle: "", persona: "", audience: "", themes: [], mode: "approval", paused: false,
-  posts_per_day: 1, post_times: ["07:30"], max_posts_per_day: 10, max_length: 500,
+  posts_per_day: 1, post_times: ["07:00"], max_posts_per_day: 10, max_length: 500,
   thread_max_parts: 5, similarity_threshold: 0.6, ai_model: "claude-sonnet-5-5"
 };
 const ACTIVE = ["pending", "approved", "ready"];
-const STATUS_NAMES = {
-  pending: "承認待ち", approved: "承認ずみ", ready: "予約（完全自動）", posted: "投稿ずみ",
-  partial: "途中まで", failed: "失敗", rejected: "却下", cancelled: "取り消し", expired: "期限切れ", skipped: "似ていたので見送り"
+const CARD_STATUS = { pending: "承認待ち", approved: "承認ずみ", ready: "完全自動" };
+const UNPOSTED = {
+  failed: { label: "失敗", reason: null },
+  expired: { label: "期限切れ", reason: "予定の時刻から3時間たっても投稿できませんでした" },
+  skipped: { label: "見送り", reason: "過去の投稿と似ていたため、投稿しませんでした" }
+};
+const RUN_NAMES = {
+  "plan.yml": "1. 下書きを作る（毎朝）", "post.yml": "2. 投稿する", "control.yml": "3. 操作", "token.yml": "4. トークン"
 };
 const TABS = ["home", "neta", "history", "settings"];
+const NOT_CONNECTED = "まだ GitHub と接続していません。「設定」の「GitHub との接続」から接続してください";
 
 const state = {
   conn: null, repoInfo: null, settings: null, queue: [], history: [],
   neta: { unused: [], used: [] }, token: null, tokenLoaded: false, runs: [],
-  loading: false, loadedAt: null, pendingIds: new Set(), pendingNeta: [],
-  editing: new Map(), formDirty: false
+  loading: false, pendingIds: new Set(), editing: new Map(), formDirty: false
 };
 
 const $ = (id) => document.getElementById(id);
@@ -434,8 +437,14 @@ function checkParts(parts, s) {
   return errors;
 }
 
-// ===== 設定の読み込み（設計書「3.」） =====
-function alignTimes(times, count) {
+// ===== 設定（設計書「3.」） =====
+function toMinutes(t) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
+}
+function byTime(a, b) { return toMinutes(a) - toMinutes(b); }
+// 先頭から count 個を使い、足りない分を既定の並びから補う（すでにある時刻は飛ばす）
+function fillTimes(times, count) {
   const result = times.filter((t) => typeof t === "string").slice(0, count);
   for (const t of DEFAULT_TIMES) {
     if (result.length >= count) break;
@@ -450,7 +459,8 @@ function normSettings(raw) {
   let n = parseInt(s.posts_per_day, 10);
   if (isNaN(n)) n = 1;
   s.posts_per_day = Math.min(10, Math.max(1, n));
-  s.post_times = alignTimes(Array.isArray(s.post_times) ? s.post_times : [], s.posts_per_day);
+  s.saved_times = Array.isArray(s.post_times) ? s.post_times.filter((t) => typeof t === "string") : [];
+  s.post_times = fillTimes(s.saved_times, s.posts_per_day).sort(byTime);
   for (const k of ["max_posts_per_day", "max_length", "thread_max_parts"]) {
     const v = parseInt(s[k], 10);
     s[k] = isNaN(v) ? DEFAULTS[k] : v;
@@ -480,7 +490,7 @@ const JST_FMT = new Intl.DateTimeFormat("ja-JP", {
 });
 function jstParts(d) { const p = {}; for (const x of JST_FMT.formatToParts(d)) p[x.type] = x.value; return p; }
 function toDate(s) { if (!s) return null; const d = new Date(s); return isNaN(d.getTime()) ? null : d; }
-function fmtDateTime(d) { if (!d) return "—"; const p = jstParts(d); return `${p.month}/${p.day}（${p.weekday}） ${p.hour}:${p.minute}`; }
+function fmtDateTime(d) { if (!d) return "—"; const p = jstParts(d); return `${p.month}/${p.day}(${p.weekday}) ${p.hour}:${p.minute}`; }
 function fmtYMD(d) { const p = jstParts(d); return `${p.year}/${p.month}/${p.day}`; }
 function fmtFull(d) { const p = jstParts(d); return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}`; }
 function daysLeft(when, now) { return Math.floor((when.getTime() - now.getTime()) / DAY); }
@@ -621,7 +631,7 @@ async function updateSettings(mutate) {
 async function loadAll() {
   if (!state.conn || state.loading) return;
   state.loading = true;
-  $("reload-btn").classList.add("spin");
+  document.querySelectorAll('[data-action="reload"]').forEach((b) => { b.disabled = true; });
   try {
     await defaultBranch();
     const [settingsFile, queue, history, netaText, token, runs] = await Promise.all([
@@ -641,10 +651,8 @@ async function loadAll() {
     state.token = token && typeof token === "object" ? token : null;
     state.tokenLoaded = true;
     state.runs = runs && Array.isArray(runs.workflow_runs) ? runs.workflow_runs : [];
-    state.loadedAt = new Date();
     // 最新の内容を表示したら「反映待ち」は元に戻す
     state.pendingIds.clear();
-    state.pendingNeta = [];
     for (const id of [...state.editing.keys()]) {
       const item = state.queue.find((q) => q.id === id);
       if (!item || !ACTIVE.includes(item.status)) state.editing.delete(id);
@@ -656,7 +664,7 @@ async function loadAll() {
     toast(e.message, true);
   } finally {
     state.loading = false;
-    $("reload-btn").classList.remove("spin");
+    document.querySelectorAll('[data-action="reload"]').forEach((b) => { b.disabled = false; });
   }
 }
 
@@ -669,6 +677,11 @@ function toast(message, isError) {
   t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.hidden = true; }, isError ? 6000 : 3500);
+}
+function needConn() {
+  if (state.conn && state.settings) return true;
+  toast(NOT_CONNECTED, true);
+  return false;
 }
 
 let confirmResolve = null;
@@ -700,16 +713,14 @@ function setConnStatus(message, kind) {
 }
 
 function renderAll() {
-  $("not-connected").hidden = !!state.conn;
-  $("updated-at").textContent = state.loadedAt ? `${jstParts(state.loadedAt).hour}:${jstParts(state.loadedAt).minute} 更新` : "";
   $("paused-banner").hidden = !(state.settings && state.settings.paused);
   renderTokenBanner();
   renderHome();
   renderNeta();
   renderHistory();
-  renderOps();
-  renderToken();
+  renderUnposted();
   renderRuns();
+  renderToken();
   fillSettingsForm();
 }
 
@@ -721,25 +732,40 @@ function sortByWhen(items, key, desc) {
   });
 }
 
+// 本文の全文（スレッドは「1/2」などの番号つき）と文字数
 function partsView(parts) {
   const list = Array.isArray(parts) ? parts : [];
   return list.map((p, i) => h("div", { class: "part" },
-    list.length > 1 ? h("span", { class: "part-label", text: `${i + 1}／${list.length}` }) : null,
+    list.length > 1 ? h("span", { class: "part-label", text: `${i + 1}/${list.length}` }) : null,
     p,
     h("span", { class: "part-label", text: `${countChars(p)}文字` })));
+}
+function firstLines(parts, n) {
+  const first = (Array.isArray(parts) && parts[0]) || "";
+  return first.split(/\r?\n/).filter((l) => l.trim()).slice(0, n).join("\n");
+}
+
+// ----- ホーム -----
+function renderMode() {
+  const s = state.settings;
+  $("mode-approval").setAttribute("aria-pressed", String(!s || s.mode !== "auto"));
+  $("mode-auto").setAttribute("aria-pressed", String(!!s && s.mode === "auto"));
+  const pause = $("pause-btn");
+  pause.textContent = s && s.paused ? "再開する" : "緊急停止";
+  pause.className = s && s.paused ? "btn primary" : "btn danger";
 }
 
 function postCard(item, kind) {
   const id = item.id;
   const busy = state.pendingIds.has(id);
   const editing = state.editing.get(id);
-  const sourceText = item.source === "neta" ? "ネタ帳から" : item.theme ? `テーマ：${item.theme}` : "テーマから";
+  const sourceText = item.source === "neta" ? "ネタ帳から" : `テーマ：${item.theme || ""}`;
   const card = h("article", { class: "post-card" + (busy ? " is-busy" : ""), "data-id": id },
     h("div", { class: "card-head" },
       h("span", { class: "when", text: fmtDateTime(toDate(item.scheduled_at)) }),
-      h("span", { class: `badge ${item.status}`, text: STATUS_NAMES[item.status] || item.status }),
+      h("span", { class: `badge ${item.status}`, text: CARD_STATUS[item.status] || item.status }),
       h("span", { class: "badge", text: sourceText }),
-      busy ? h("span", { class: "badge busy", text: "反映待ち" }) : null));
+      busy ? h("span", { class: "badge busy", text: "反映中…" }) : null));
 
   if (editing) {
     const area = h("div", { class: "edit-area" });
@@ -748,22 +774,21 @@ function postCard(item, kind) {
       ta.value = text;
       area.append(h("div", { class: "edit-row" },
         h("div", { class: "edit-row-head" },
-          h("span", { text: editing.length > 1 ? `${i + 1}つ目` : "本文" }),
-          h("span", { class: "char-count", "data-index": i }),
-          editing.length > 1 ? h("button", { class: "link-btn", type: "button", "data-action": "remove-part", "data-index": i, text: "この投稿を消す" }) : null),
+          h("span", { text: editing.length > 1 ? `${i + 1}/${editing.length}` : "本文" }),
+          h("span", { class: "char-count", "data-index": i })),
         ta));
     });
     area.append(h("div", { class: "error-text edit-errors" }));
     card.append(area, h("div", { class: "actions" },
-      h("button", { class: "btn", type: "button", "data-action": "add-part", text: "＋ 続きを足す（スレッド）" }),
-      h("button", { class: "btn ghost", type: "button", "data-action": "cancel-edit", text: "やめる" }),
-      h("button", { class: "btn primary", type: "button", "data-action": "save-edit", text: "修正して承認" })));
+      h("button", { class: "btn", type: "button", "data-action": "add-part", text: "続きを足す" }),
+      h("button", { class: "btn primary", type: "button", "data-action": "save-edit", text: "修正して承認" }),
+      h("button", { class: "btn ghost", type: "button", "data-action": "cancel-edit", text: "やめる" })));
     updateEditValidity(card);
     return card;
   }
 
   card.append(...partsView(item.parts));
-  if (item.neta) card.append(h("div", { class: "meta", text: `ネタ：${item.neta}` }));
+  if (item.source === "neta" && item.neta) card.append(h("div", { class: "meta", text: `ネタ：${item.neta}` }));
   const buttons = kind === "pending"
     ? [h("button", { class: "btn primary", type: "button", "data-action": "approve", disabled: busy, text: "承認" }),
        h("button", { class: "btn", type: "button", "data-action": "edit", disabled: busy, text: "修正" }),
@@ -792,91 +817,105 @@ function updateEditValidity(card) {
 }
 
 function renderHome() {
+  renderMode();
   const pendingList = $("pending-list"), scheduledList = $("scheduled-list");
-  pendingList.replaceChildren();
-  scheduledList.replaceChildren();
-  if (!state.conn || !state.settings) {
-    pendingList.append(h("div", { class: "empty", text: "接続すると、ここに下書きが出ます" }));
-    $("pending-count").textContent = "0";
-    $("scheduled-count").textContent = "0";
-    $("trouble-wrap").hidden = true;
-    return;
-  }
   const pending = sortByWhen(state.queue.filter((q) => q.status === "pending"), "scheduled_at");
   const scheduled = sortByWhen(state.queue.filter((q) => q.status === "approved" || q.status === "ready"), "scheduled_at");
   $("pending-count").textContent = String(pending.length);
   $("scheduled-count").textContent = String(scheduled.length);
-  if (pending.length) pending.forEach((q) => pendingList.append(postCard(q, "pending")));
-  else pendingList.append(h("div", { class: "empty", text: "承認待ちの下書きはありません" }));
-  if (scheduled.length) scheduled.forEach((q) => scheduledList.append(postCard(q, "scheduled")));
-  else scheduledList.append(h("div", { class: "empty", text: "予約済みの投稿はありません" }));
-
-  const since = Date.now() - 3 * DAY;
-  const trouble = sortByWhen(state.queue.filter((q) => ["failed", "partial", "skipped", "expired"].includes(q.status)
-    && (toDate(q.posted_at || q.scheduled_at) || new Date(0)).getTime() >= since), "scheduled_at", true);
-  $("trouble-wrap").hidden = trouble.length === 0;
-  const tl = $("trouble-list");
-  tl.replaceChildren(...trouble.map((q) => h("div", { class: "history-card" },
-    h("div", { class: "card-head" },
-      h("span", { class: "when", text: fmtDateTime(toDate(q.scheduled_at)) }),
-      h("span", { class: "badge bad", text: STATUS_NAMES[q.status] || q.status })),
-    h("div", { class: "part", text: (q.parts && q.parts[0]) || "" }),
-    q.error ? h("div", { class: "error-text", text: q.error }) : null)));
+  pendingList.replaceChildren(...(pending.length ? pending.map((q) => postCard(q, "pending"))
+    : [h("div", { class: "empty", text: "ありません" })]));
+  scheduledList.replaceChildren(...(scheduled.length ? scheduled.map((q) => postCard(q, "scheduled"))
+    : [h("div", { class: "empty", text: "ありません" })]));
 }
 
+// ----- ネタ帳 -----
 function renderNeta() {
-  const pl = $("neta-pending-list"), ul = $("neta-used-list");
-  const unused = state.neta.unused;
-  const items = unused.map((m) => h("div", { class: "neta-item", text: m }))
-    .concat(state.pendingNeta.map((m) => h("div", { class: "neta-item is-busy" }, m, h("span", { class: "date", text: "反映待ち" }))));
-  $("neta-pending-count").textContent = String(unused.length);
-  pl.replaceChildren(...(items.length ? items : [h("div", { class: "empty", text: "未使用のネタはありません" })]));
+  const unused = state.neta.unused.map((m) => h("div", { class: "neta-item", text: m }));
+  $("neta-pending-list").replaceChildren(...(unused.length ? unused : [h("div", { class: "empty", text: "ありません" })]));
   const used = state.neta.used.slice(0, 50).map((line) => {
     const m = line.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/);
     return h("div", { class: "neta-item" }, m ? h("span", { class: "date", text: m[1] }) : null, m ? m[2] : line);
   });
-  ul.replaceChildren(...(used.length ? used : [h("div", { class: "empty", text: "まだありません" })]));
+  $("neta-used-list").replaceChildren(...(used.length ? used : [h("div", { class: "empty", text: "ありません" })]));
 }
 
+// ----- 履歴 -----
 function renderHistory() {
   const list = $("history-list");
   const items = sortByWhen(state.history, "posted_at", true);
   if (!items.length) {
-    list.replaceChildren(h("div", { class: "empty", text: "まだ投稿はありません" }));
+    list.replaceChildren(h("div", { class: "empty", text: "ありません" }));
     return;
   }
   list.replaceChildren(...items.map((it) => {
     const ids = Array.isArray(it.post_ids) ? it.post_ids : [];
     const dry = ids.some((x) => String(x).startsWith("dry-run"));
-    const link = typeof it.permalink === "string" && /^https:\/\//.test(it.permalink)
-      ? h("a", { class: "btn", href: it.permalink, target: "_blank", rel: "noopener noreferrer", text: "Threadsで見る" }) : null;
-    return h("article", { class: "history-card", "data-id": it.id || "" },
-      h("div", { class: "card-head" },
-        h("span", { class: "when", text: fmtDateTime(toDate(it.posted_at)) }),
-        h("span", { class: "badge", text: it.source === "neta" ? "ネタ帳から" : "テーマから" }),
-        dry ? h("span", { class: "badge pending", text: "試運転" }) : null),
-      partsView(it.parts),
-      dry ? h("div", { class: "meta", text: "試運転（実際には投稿されていません）" }) : null,
-      link ? h("div", { class: "actions" }, link) : null);
+    const partial = state.queue.some((q) => q.id === it.id && q.status === "partial");
+    const link = !dry && typeof it.permalink === "string" && /^https:\/\//.test(it.permalink)
+      ? h("a", { class: "summary-link", href: it.permalink, target: "_blank", rel: "noopener noreferrer", text: "Threadsで見る" }) : null;
+    return h("details", { class: "history-card", "data-id": it.id || "" },
+      h("summary", null,
+        h("div", { class: "card-head" },
+          h("span", { class: "when", text: fmtDateTime(toDate(it.posted_at)) }),
+          h("span", { class: "badge", text: it.source === "neta" ? "ネタ帳から" : "テーマから" }),
+          dry ? h("span", { class: "badge pending", text: "試運転" }) : null,
+          partial ? h("span", { class: "badge bad", text: "途中まで" }) : null),
+        h("div", { class: "preview", text: firstLines(it.parts, 2) }),
+        link),
+      h("div", { class: "detail-body" },
+        partsView(it.parts),
+        dry ? h("div", { class: "meta", text: "試運転（実際には投稿されていません）" }) : null));
   }));
 }
 
-function renderOps() {
-  const s = state.settings;
-  const ready = !!(state.conn && s);
-  $("mode-approval").setAttribute("aria-pressed", String(!s || s.mode !== "auto"));
-  $("mode-auto").setAttribute("aria-pressed", String(!!s && s.mode === "auto"));
-  $("mode-approval").disabled = !ready;
-  $("mode-auto").disabled = !ready;
-  const pause = $("pause-btn");
-  pause.disabled = !ready;
-  pause.textContent = s && s.paused ? "再開" : "緊急停止";
-  pause.className = s && s.paused ? "btn primary block" : "btn danger block";
-  $("plan-now").disabled = !ready;
-  $("neta-submit").disabled = !state.conn;
-  $("settings-save").disabled = !ready;
+function renderUnposted() {
+  const list = $("unposted-list");
+  const since = Date.now() - 14 * DAY;
+  const items = sortByWhen(state.queue.filter((q) => UNPOSTED[q.status]
+    && (toDate(q.created_at) || new Date(0)).getTime() >= since), "scheduled_at", true);
+  if (!items.length) {
+    list.replaceChildren(h("div", { class: "empty", text: "ありません" }));
+    return;
+  }
+  list.replaceChildren(...items.map((q) => {
+    const kind = UNPOSTED[q.status];
+    const reason = kind.reason || q.error || "";
+    return h("details", { class: "unposted-card", "data-id": q.id || "" },
+      h("summary", null,
+        h("div", { class: "card-head" },
+          h("span", { class: "when", text: fmtDateTime(toDate(q.scheduled_at)) }),
+          h("span", { class: "badge bad", text: kind.label })),
+        h("div", { class: "preview one", text: firstLines(q.parts, 1) })),
+      h("div", { class: "detail-body" },
+        partsView(q.parts),
+        reason ? h("div", { class: "error-text", text: reason }) : null));
+  }));
 }
 
+function renderRuns() {
+  const list = $("runs-list");
+  if (!state.runs.length) { list.replaceChildren(h("div", { class: "run muted", text: "ありません" })); return; }
+  const label = (r) => {
+    if (r.status !== "completed") return { text: "実行中", cls: "badge busy" };
+    if (r.conclusion === "success") return { text: "成功", cls: "badge good" };
+    if (r.conclusion === "cancelled" || r.conclusion === "skipped") return { text: "取り消し", cls: "badge" };
+    return { text: "失敗", cls: "badge bad" };
+  };
+  list.replaceChildren(...state.runs.map((r) => {
+    const l = label(r);
+    const file = String(r.path || "").split("/").pop();
+    const nameText = RUN_NAMES[file] || r.name || "";
+    const name = /^https:\/\//.test(r.html_url || "")
+      ? h("a", { class: "name", href: r.html_url, target: "_blank", rel: "noopener noreferrer", text: nameText })
+      : h("span", { class: "name", text: nameText });
+    return h("div", { class: "run" }, name,
+      h("span", { class: "time", text: fmtDateTime(toDate(r.created_at)) }),
+      h("span", { class: l.cls, text: l.text }));
+  }));
+}
+
+// ----- トークン -----
 // トークンの知らせ（当てはまるものをすべて並べる）
 function tokenAlerts(rec, now) {
   const alerts = [];
@@ -896,9 +935,9 @@ function tokenAlerts(rec, now) {
   if (!expired && updated && now.getTime() - updated.getTime() >= 8 * DAY) {
     alerts.push({ red: false, text: "トークンの自動更新が止まっているようです。「設定」→「トークンを更新」を押し、GitHubの Actions の「4. トークン」を確かめてください" });
   }
-  const gh = toDate(rec.gh_key_expires_at);
-  if (gh) {
-    const n = daysLeft(gh, now);
+  const ghExp = toDate(rec.gh_key_expires_at);
+  if (ghExp) {
+    const n = daysLeft(ghExp, now);
     if (n <= 30) alerts.push({ red: false, text: `GitHubの鍵の期限が近づいています（あと${n}日）。手作業のパートH-2〜H-3で作り直してください` });
   }
   return alerts;
@@ -916,7 +955,6 @@ function renderTokenBanner() {
 
 function renderToken() {
   const status = $("token-status"), note = $("token-refresh-note"), btn = $("token-refresh");
-  $("token-setup").disabled = !state.conn;
   if (!state.conn || !state.tokenLoaded) {
     status.textContent = "—";
     btn.disabled = true;
@@ -925,17 +963,17 @@ function renderToken() {
   }
   const rec = state.token, now = new Date();
   if (!rec) {
-    status.textContent = "未セットアップ（初回セットアップがまだです）";
+    status.textContent = "未セットアップ";
     btn.disabled = true;
-    note.textContent = "初回セットアップが終わると、更新できるようになります。";
+    note.textContent = "初回セットアップが終わると、押せるようになります。";
     return;
   }
   const lines = [];
   const exp = toDate(rec.expires_at);
   const expired = !!exp && exp.getTime() <= now.getTime();
   if (exp && !expired) lines.push(`期限：${fmtYMD(exp)}（あと${daysLeft(exp, now)}日）。毎週月曜の朝に自動で延びます。`);
-  else if (exp) lines.push(`期限：${fmtYMD(exp)}（期限切れ）。トークンを取り直してください。`);
-  else lines.push("期限の記録が読めません");
+  else if (exp) lines.push(`期限：${fmtYMD(exp)}（期限切れ）`);
+  else lines.push("期限：—");
   const ghExp = toDate(rec.gh_key_expires_at);
   if (ghExp) lines.push(`GitHubの鍵（GH_SECRETS_TOKEN）の期限：${fmtYMD(ghExp)}（あと${daysLeft(ghExp, now)}日）`);
   status.textContent = lines.join("\n");
@@ -944,7 +982,7 @@ function renderToken() {
   const openAt = updated ? new Date(updated.getTime() + DAY) : null;
   if (expired) {
     btn.disabled = true;
-    note.textContent = "期限が切れているので、更新できません（取り直しが必要です）。";
+    note.textContent = "期限が切れているので、押せません（取り直しが必要です）。";
   } else if (openAt && now.getTime() < openAt.getTime()) {
     btn.disabled = true;
     note.textContent = `前回の発行・更新から24時間たっていないので、まだ押せません。${fmtFull(openAt)} から押せます。`;
@@ -954,41 +992,19 @@ function renderToken() {
   }
 }
 
-function renderRuns() {
-  const list = $("runs-list");
-  if (!state.runs.length) { list.replaceChildren(h("div", { class: "muted", text: "まだありません" })); return; }
-  const label = (r) => {
-    if (r.status !== "completed") return { text: r.status === "queued" ? "待機中" : "実行中", cls: "badge busy" };
-    if (r.conclusion === "success") return { text: "成功", cls: "badge posted" };
-    if (r.conclusion === "failure") return { text: "失敗", cls: "badge bad" };
-    if (r.conclusion === "cancelled") return { text: "中止", cls: "badge" };
-    return { text: r.conclusion || "終了", cls: "badge" };
-  };
-  list.replaceChildren(...state.runs.map((r) => {
-    const l = label(r);
-    const name = /^https:\/\//.test(r.html_url || "")
-      ? h("a", { class: "name", href: r.html_url, target: "_blank", rel: "noopener noreferrer", text: r.name || "" })
-      : h("span", { class: "name", text: r.name || "" });
-    return h("div", { class: "run" }, h("span", { class: l.cls, text: l.text }), name,
-      h("span", { class: "time", text: fmtDateTime(toDate(r.created_at)) }));
-  }));
-}
-
-// ===== 設定フォーム =====
+// ----- 設定フォーム -----
 function timeOptions() {
   const list = [];
-  for (let m = 6 * 60 + 30; m <= 23 * 60 + 30; m += 30) {
-    list.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
-  }
+  for (let hour = 7; hour <= 23; hour++) list.push(`${String(hour).padStart(2, "0")}:00`);
   return list;
 }
 function buildSettingsForm() {
   const ppd = $("set-posts-per-day");
-  for (let i = 1; i <= 10; i++) ppd.append(h("option", { value: String(i), text: `${i}件` }));
+  for (let i = 1; i <= 10; i++) ppd.append(h("option", { value: String(i), text: String(i) }));
   const box = $("times-box");
   const opts = timeOptions();
   for (let i = 1; i <= 10; i++) {
-    const sel = h("select", { id: `set-time-${i}`, "aria-label": `${i}つ目の時刻` });
+    const sel = h("select", { id: `set-time-${i}`, "aria-label": `投稿の時間 ${i}つ目` });
     opts.forEach((t) => sel.append(h("option", { value: t, text: t })));
     sel.value = DEFAULT_TIMES[i - 1];
     box.append(h("label", { "data-time-row": i }, `${i}つ目`, sel));
@@ -1010,16 +1026,13 @@ function fillSettingsForm() {
   $("set-audience").value = s.audience || "";
   $("set-themes").value = s.themes.join("\n");
   $("set-posts-per-day").value = String(s.posts_per_day);
-  // 保存ずみの時刻を使い、足りない欄には初期値を入れておく
-  const times = alignTimes(s.post_times, 10);
+  // 保存ずみの時刻を使い、足りない欄には既定の並びから、ほかの欄で使っていない時刻を入れておく
+  const saved = [...s.saved_times].sort(byTime);
+  const times = fillTimes(saved, 10);
   for (let i = 1; i <= 10; i++) setTimeValue($(`set-time-${i}`), times[i - 1]);
   showTimeRows();
   $("set-max-per-day").value = String(s.max_posts_per_day);
   $("settings-errors").hidden = true;
-}
-function toMinutes(t) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(t);
-  return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
 }
 function readSettingsForm() {
   const n = parseInt($("set-posts-per-day").value, 10) || 1;
@@ -1031,75 +1044,79 @@ function readSettingsForm() {
     audience: $("set-audience").value.trim(),
     themes: $("set-themes").value.split(/\r?\n/).map((t) => t.trim()).filter((t) => t),
     posts_per_day: n,
-    post_times: times,
+    post_times: times.sort(byTime),
     max_posts_per_day: Number($("set-max-per-day").value)
   };
 }
 function validateSettings(v) {
   const errors = [];
   if (!/^[A-Za-z0-9_.]{1,30}$/.test(v.handle)) errors.push("アカウント名は、英数字・_・. の30文字以内で入れてください");
-  if (!v.themes.length) errors.push("テーマを1つ以上入れてください");
-  const mins = v.post_times.map(toMinutes);
-  if (mins.some((m) => isNaN(m) || m < 6 * 60 + 30 || m > 23 * 60 + 30)) errors.push("投稿の時刻は 6:30〜23:30 の間にしてください");
-  const sorted = [...mins].sort((a, b) => a - b);
-  for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i] - sorted[i - 1] < 30) { errors.push("投稿の時刻は、30分以上あけてください（同じ時刻も不可）"); break; }
+  if (!v.themes.length) errors.push("発信テーマを1つ以上入れてください");
+  const ok = v.post_times.every((t) => /^\d{2}:00$/.test(t) && toMinutes(t) >= 7 * 60 && toMinutes(t) <= 23 * 60);
+  if (!ok) errors.push("投稿の時間は、07:00〜23:00 のちょうどの時刻にしてください");
+  const mins = v.post_times.map(toMinutes).sort((a, b) => a - b);
+  for (let i = 1; i < mins.length; i++) {
+    if (mins[i] - mins[i - 1] < 60) { errors.push("投稿の時間は、1時間以上あけてください（同じ時刻を2つ選ばない）"); break; }
   }
-  if (!Number.isInteger(v.max_posts_per_day) || v.max_posts_per_day < 1 || v.max_posts_per_day > 50) errors.push("上限は 1〜50 の数字にしてください");
-  else if (v.max_posts_per_day < v.posts_per_day) errors.push("上限は、1日に作る投稿の数以上にしてください");
+  if (!Number.isInteger(v.max_posts_per_day) || v.max_posts_per_day < 1 || v.max_posts_per_day > 50) errors.push("1日の投稿の上限は、1〜50 の数字にしてください");
+  else if (v.max_posts_per_day < v.posts_per_day) errors.push("1日の投稿の上限は、1日の投稿の数以上にしてください");
   return errors;
 }
 
 // ===== 操作 =====
-async function onCardAction(card, action, button) {
+const DONE = { approve: "承認しました", reject: "却下しました", cancel: "取り消しました", edit: "修正しました" };
+
+async function sendControl(id, action, text) {
+  state.pendingIds.add(id);
+  renderHome();
+  try {
+    await runControl(action, id, text);
+    toast(`${DONE[action]}。1分ほどで反映されます`);
+  } catch (e) {
+    state.pendingIds.delete(id);
+    renderHome();
+    toast(e.message, true);
+  }
+}
+
+async function onCardAction(card, action) {
   const id = card.getAttribute("data-id");
   const item = state.queue.find((q) => q.id === id);
   if (!item) return;
-  const markBusy = () => { state.pendingIds.add(id); renderHome(); };
-  const fail = (e) => { state.pendingIds.delete(id); renderHome(); toast(e.message, true); };
-  try {
-    if (action === "approve") {
-      markBusy();
-      await runControl("approve", id);
-      toast("承認を送りました。反映まで1分ほどかかります");
-    } else if (action === "reject") {
-      if (!(await ask("この下書きを却下しますか？"))) return;
-      markBusy();
-      await runControl("reject", id);
-      toast("却下を送りました");
-    } else if (action === "cancel") {
-      if (!(await ask("この予約を取り消しますか？"))) return;
-      markBusy();
-      await runControl("cancel", id);
-      toast("取り消しを送りました");
-    } else if (action === "edit") {
-      state.editing.set(id, [...(item.parts || [""])]);
-      renderHome();
-      const ta = document.querySelector(`.post-card[data-id="${CSS.escape(id)}"] textarea.edit-part`);
-      if (ta) ta.focus();
-    } else if (action === "add-part") {
-      state.editing.get(id).push("");
-      renderHome();
-      const all = document.querySelectorAll(`.post-card[data-id="${CSS.escape(id)}"] textarea.edit-part`);
-      if (all.length) all[all.length - 1].focus();
-    } else if (action === "remove-part") {
-      const parts = state.editing.get(id);
-      parts.splice(Number(button.getAttribute("data-index")), 1);
-      renderHome();
-    } else if (action === "cancel-edit") {
-      state.editing.delete(id);
-      renderHome();
-    } else if (action === "save-edit") {
-      const parts = splitParts(state.editing.get(id).join("\n---\n"));
-      if (checkParts(parts, state.settings).length) return;
-      state.editing.delete(id);
-      markBusy();
-      await runControl("edit", id, parts.join("\n---\n"));
-      toast("修正を送りました。反映まで1分ほどかかります");
-    }
-  } catch (e) {
-    fail(e);
+  if (action === "approve" || action === "reject" || action === "cancel") {
+    await sendControl(id, action);
+  } else if (action === "edit") {
+    state.editing.set(id, [...(item.parts || [""])]);
+    renderHome();
+    const ta = document.querySelector(`.post-card[data-id="${CSS.escape(id)}"] textarea.edit-part`);
+    if (ta) ta.focus();
+  } else if (action === "add-part") {
+    state.editing.get(id).push("");
+    renderHome();
+    const all = document.querySelectorAll(`.post-card[data-id="${CSS.escape(id)}"] textarea.edit-part`);
+    if (all.length) all[all.length - 1].focus();
+  } else if (action === "cancel-edit") {
+    state.editing.delete(id);
+    renderHome();
+  } else if (action === "save-edit") {
+    const parts = splitParts(state.editing.get(id).join("\n---\n"));
+    if (checkParts(parts, state.settings).length) return;
+    state.editing.delete(id);
+    await sendControl(id, "edit", parts.join("\n---\n"));
   }
+}
+
+async function setMode(mode) {
+  if (!needConn() || state.settings.mode === mode) return;
+  if (mode === "auto" && !(await ask("完全自動にしますか？\nAIが作った下書きが、承認なしで投稿されるようになります。"))) return;
+  try { await updateSettings((s) => { s.mode = mode; }); toast("設定を保存しました"); }
+  catch (e) { toast(e.message, true); }
+}
+async function setPaused(paused) {
+  if (!needConn()) return;
+  if (paused && !(await ask("緊急停止しますか？\n下書きづくりも投稿も止まります。"))) return;
+  try { await updateSettings((s) => { s.paused = paused; }); toast("設定を保存しました"); }
+  catch (e) { toast(e.message, true); }
 }
 
 async function onConnect() {
@@ -1109,7 +1126,7 @@ async function onConnect() {
     token: $("conn-token").value.trim()
   };
   if (!conn.owner || !conn.repo || !conn.token) {
-    setConnStatus("ユーザー名・リポジトリ名・トークンを、すべて入れてください", "bad");
+    setConnStatus("GitHub のユーザー名・リポジトリ名・アクセストークンを、すべて入れてください", "bad");
     return;
   }
   $("conn-save").disabled = true;
@@ -1135,10 +1152,9 @@ function onDisconnect() {
   reloadTimers.forEach(clearTimeout);
   Object.assign(state, {
     conn: null, repoInfo: null, settings: null, queue: [], history: [], neta: { unused: [], used: [] },
-    token: null, tokenLoaded: false, runs: [], loadedAt: null, formDirty: false
+    token: null, tokenLoaded: false, runs: [], formDirty: false
   });
   state.pendingIds.clear();
-  state.pendingNeta = [];
   state.editing.clear();
   $("conn-owner").value = "";
   $("conn-repo").value = "";
@@ -1149,17 +1165,21 @@ function onDisconnect() {
 
 function bind() {
   for (const t of TABS) $(`tab-btn-${t}`).addEventListener("click", () => switchTab(t));
-  $("reload-btn").addEventListener("click", () => loadAll());
 
+  document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("[data-action]");
+    if (!btn || btn.disabled) return;
+    const action = btn.getAttribute("data-action");
+    if (action === "reload") {
+      if (needConn()) loadAll();
+      return;
+    }
+    if (action === "resume") { setPaused(false); return; }
+    const card = btn.closest(".post-card");
+    if (card) onCardAction(card, action);
+  });
   for (const listId of ["pending-list", "scheduled-list"]) {
-    const list = $(listId);
-    list.addEventListener("click", (ev) => {
-      const btn = ev.target.closest("[data-action]");
-      const card = ev.target.closest(".post-card");
-      if (!btn || !card || btn.disabled) return;
-      onCardAction(card, btn.getAttribute("data-action"), btn);
-    });
-    list.addEventListener("input", (ev) => {
+    $(listId).addEventListener("input", (ev) => {
       const ta = ev.target.closest("textarea.edit-part");
       const card = ev.target.closest(".post-card");
       if (!ta || !card) return;
@@ -1170,61 +1190,46 @@ function bind() {
     });
   }
 
+  $("mode-approval").addEventListener("click", () => setMode("approval"));
+  $("mode-auto").addEventListener("click", () => setMode("auto"));
+  $("pause-btn").addEventListener("click", () => { if (needConn()) setPaused(!state.settings.paused); });
+  $("plan-now").addEventListener("click", async () => {
+    if (!needConn()) return;
+    const btn = $("plan-now");
+    btn.disabled = true;
+    try { await dispatch("plan.yml"); toast("下書きの作成を始めました。1〜2分で届きます"); }
+    catch (e) { toast(e.message, true); }
+    finally { btn.disabled = false; }
+  });
+
   $("neta-submit").addEventListener("click", async () => {
+    if (!needConn()) return;
     const text = $("neta-input").value.trim();
     if (!text) { toast("ネタを入れてください", true); return; }
     const btn = $("neta-submit");
     btn.disabled = true;
     try {
       await runControl("neta-add", "", text);
-      state.pendingNeta.push(...text.split(/\r?\n/).map((l) => l.trim().replace(/^- /, "")).filter((l) => l));
       $("neta-input").value = "";
-      renderNeta();
-      toast("ネタを送りました。反映まで1分ほどかかります");
+      toast("ネタを追加しました。1分ほどでネタ帳に入ります");
     } catch (e) {
       toast(e.message, true);
     } finally {
-      btn.disabled = !state.conn;
+      btn.disabled = false;
     }
   });
 
-  $("mode-approval").addEventListener("click", async () => {
-    if (!state.settings || state.settings.mode !== "auto") return;
-    try { await updateSettings((s) => { s.mode = "approval"; }); toast("「承認してから投稿」にしました"); }
-    catch (e) { toast(e.message, true); }
-  });
-  $("mode-auto").addEventListener("click", async () => {
-    if (!state.settings || state.settings.mode === "auto") return;
-    if (!(await ask("完全自動にしますか？\nAIが作った下書きが、承認なしで投稿されるようになります。"))) return;
-    try { await updateSettings((s) => { s.mode = "auto"; }); toast("完全自動にしました"); }
-    catch (e) { toast(e.message, true); }
-  });
-  $("pause-btn").addEventListener("click", async () => {
-    if (!state.settings) return;
-    const stop = !state.settings.paused;
-    if (stop && !(await ask("緊急停止しますか？\n下書きづくりも投稿も止まります。"))) return;
-    try {
-      await updateSettings((s) => { s.paused = stop; });
-      toast(stop ? "緊急停止しました" : "再開しました");
-    } catch (e) { toast(e.message, true); }
-  });
-  $("plan-now").addEventListener("click", async () => {
-    const btn = $("plan-now");
-    btn.disabled = true;
-    try { await dispatch("plan.yml"); toast("下書きづくりを始めました。1〜2分で反映されます"); }
-    catch (e) { toast(e.message, true); }
-    finally { btn.disabled = !(state.conn && state.settings); }
-  });
-
   $("token-refresh").addEventListener("click", async () => {
+    if (!needConn()) return;
     const btn = $("token-refresh");
     btn.disabled = true;
-    try { await dispatch("token.yml", { action: "refresh" }); toast("トークンの更新を始めました"); }
+    try { await dispatch("token.yml", { action: "refresh" }); toast("トークンの更新を始めました。1〜2分で期限が延びます"); }
     catch (e) { toast(e.message, true); renderToken(); }
   });
   $("token-setup").addEventListener("click", async () => {
-    if (!(await ask("短期トークンを出してから1時間以内に押してください。\n初回セットアップを始めますか？"))) return;
-    try { await dispatch("token.yml", { action: "setup" }); toast("初回セットアップを始めました。1〜2分で反映されます"); }
+    if (!needConn()) return;
+    if (!(await ask("Secrets に入れた Threads のトークンを確かめて、期限を記録します。始めますか？"))) return;
+    try { await dispatch("token.yml", { action: "setup" }); toast("初回セットアップを始めました。1〜2分で期限が表示されます"); }
     catch (e) { toast(e.message, true); }
   });
 
@@ -1233,6 +1238,7 @@ function bind() {
   form.forEach((id) => $(id).addEventListener("input", () => { state.formDirty = true; }));
   $("set-posts-per-day").addEventListener("change", () => { state.formDirty = true; showTimeRows(); });
   $("settings-save").addEventListener("click", async () => {
+    if (!needConn()) return;
     const v = readSettingsForm();
     const errors = validateSettings(v);
     const box = $("settings-errors");
@@ -1254,7 +1260,7 @@ function bind() {
       box.replaceChildren(h("ul", null, h("li", { text: e.message })));
       box.hidden = false;
     } finally {
-      btn.disabled = !(state.conn && state.settings);
+      btn.disabled = false;
     }
   });
 
@@ -1285,6 +1291,7 @@ function init() {
   } else {
     switchTab("settings");
     renderAll();
+    toast(NOT_CONNECTED);
   }
 }
 
