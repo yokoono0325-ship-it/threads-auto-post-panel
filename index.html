@@ -163,6 +163,10 @@ textarea { resize: vertical; line-height: 1.6; }
 
 .neta-item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 6px; font-size: 15px; overflow-wrap: anywhere; }
 .neta-item .date { font-size: 12px; color: var(--muted); display: block; }
+.neta-row { display: flex; align-items: center; gap: 8px; }
+.neta-row .neta-text { flex: 1; min-width: 0; }
+.neta-del { flex: none; min-height: 36px; padding: 4px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--danger); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.neta-del:disabled { opacity: .45; cursor: not-allowed; }
 
 .run { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .run .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -831,7 +835,9 @@ function renderHome() {
 
 // ----- ネタ帳 -----
 function renderNeta() {
-  const unused = state.neta.unused.map((m) => h("div", { class: "neta-item", text: m }));
+  const unused = state.neta.unused.map((m, i) => h("div", { class: "neta-item neta-row" },
+    h("span", { class: "neta-text", text: m }),
+    h("button", { class: "neta-del", type: "button", "data-action": "neta-delete", "data-index": i + 1, text: "削除" })));
   $("neta-pending-list").replaceChildren(...(unused.length ? unused : [h("div", { class: "empty", text: "ありません" })]));
   const used = state.neta.used.slice(0, 50).map((line) => {
     const m = line.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/);
@@ -1119,6 +1125,22 @@ async function setPaused(paused) {
   catch (e) { toast(e.message, true); }
 }
 
+// 「これから使うネタ」を1件削除する（番号は上から何番目か、本文は表示しているネタ）
+async function deleteNeta(btn) {
+  if (!needConn()) return;
+  const number = Number(btn.getAttribute("data-index"));
+  const text = state.neta.unused[number - 1];
+  if (!text || !window.confirm("このネタを削除しますか？")) return;
+  btn.disabled = true;
+  try {
+    await runControl("neta-delete", String(number), text);
+    toast("削除しました。1分ほどでネタ帳から消えます");
+  } catch (e) {
+    btn.disabled = false;
+    toast(e.message, true);
+  }
+}
+
 async function onConnect() {
   const conn = {
     owner: $("conn-owner").value.trim(),
@@ -1175,6 +1197,7 @@ function bind() {
       return;
     }
     if (action === "resume") { setPaused(false); return; }
+    if (action === "neta-delete") { deleteNeta(btn); return; }
     const card = btn.closest(".post-card");
     if (card) onCardAction(card, action);
   });
